@@ -6,6 +6,7 @@ No magic numbers are scattered across modules.
 """
 
 import os
+import secrets
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
 
@@ -135,12 +136,18 @@ class MetricsConfig:
 @dataclass
 class SecurityConfig:
     """Cryptographic authorization and rate limiting."""
-    jwt_secret: str = field(default_factory=lambda: os.getenv("JWT_SECRET", "quant-traffic-jwt-key-chennai-sec-2026"))
+    jwt_secret: str = field(default_factory=lambda: os.getenv("JWT_SECRET", ""))
+    jwt_secret_is_ephemeral: bool = False
     jwt_algorithm: str = "HS256"
     token_validity_sec: int = 600
     rate_limit_requests: int = 5
     rate_limit_window_sec: int = 60
     audit_log_file: str = "audit_log.jsonl"
+
+    def __post_init__(self):
+        if not self.jwt_secret:
+            self.jwt_secret = secrets.token_hex(32)
+            self.jwt_secret_is_ephemeral = True
 
 
 @dataclass
@@ -149,6 +156,38 @@ class UIConfig:
     map_tile_provider: str = field(default_factory=lambda: os.getenv("MAP_TILE_PROVIDER", "carto_dark"))
     cartodb_api_key: str = field(default_factory=lambda: os.getenv("CARTODB_API_KEY", ""))
     google_maps_api_key: str = field(default_factory=lambda: os.getenv("GOOGLE_MAPS_API_KEY", ""))
+
+
+@dataclass
+class QPUConfig:
+    """Configuration and pricing safety parameters for real quantum hardware execution.
+
+    IMPORTANT PRICING & DEVICE NOTICE:
+    Device ARNs, pricing rates, and operational windows must ALWAYS be verified in the
+    respective AWS Braket or IBM Quantum provider consoles before running workloads.
+    Device availability and hourly pricing change frequently across regions and hardware vendors.
+    """
+    # Safety constraints
+    max_shots: int = 1000            # Hard upper limit on measurement shots
+    max_cost_usd: float = 5.00       # Maximum acceptable cost per hardware execution run (default: $5.00)
+    hardware_timeout_sec: int = 600  # Timeout waiting for QPU job/task completion
+
+    # Default device targets (must be verified or specified explicitly via --device)
+    default_braket_device_arn: str = ""
+    default_braket_region: str = "us-east-1"
+    default_ibm_backend: str = ""
+
+    # Estimated pricing rates (USD) - DO NOT treat as ground truth; verify in provider console!
+    # AWS Braket typically assesses a per-task fee (~$0.30) plus per-shot fee (~$0.01 to $0.03)
+    braket_task_fee_usd: float = 0.30
+    braket_per_shot_usd: float = 0.03  # Conservative upper-bound estimate
+
+    # IBM Quantum Runtime: Pay-As-You-Go typically charges per runtime-second,
+    # while Open Plan accounts execute without direct monetary charge within monthly quota limits.
+    ibm_estimated_cost_usd: float = 0.00
+
+    # QAOA hardware circuit parameters
+    default_p_layers: int = 2
 
 
 @dataclass
@@ -165,7 +204,9 @@ class MasterConfig:
     metrics: MetricsConfig = field(default_factory=MetricsConfig)
     security: SecurityConfig = field(default_factory=SecurityConfig)
     ui: UIConfig = field(default_factory=UIConfig)
+    qpu: QPUConfig = field(default_factory=QPUConfig)
 
 
 # Global default instance
 DEFAULT_CONFIG = MasterConfig()
+

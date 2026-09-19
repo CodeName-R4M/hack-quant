@@ -874,6 +874,13 @@ def render_hospital_maps_page():
             unsafe_allow_html=True,
         )
 
+    st.info(
+        "ℹ️ **Notice**: This Paramedic Hospital Navigation Cockpit is a standalone concept demonstration. "
+        "It is decoupled from the live traffic signal simulator, operates independently of signal phase timing, "
+        "and requires an active internet connection to stream tile map layers and fetch OSRM routing geometries."
+    )
+
     # Embed the rich, full-height Paramedic Google Maps application
     html_app = generate_hospital_maps_html()
     components.html(html_app, height=750, scrolling=False)
+

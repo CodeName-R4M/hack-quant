@@ -9,6 +9,8 @@
 - Quantum QAOA panel, Controller comparisons, and Cryptographic Security
 """
 
+import glob
+import json
 import os
 import random
 import sys
@@ -18,18 +20,20 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 import streamlit.components.v1 as components
-import importlib
-import traffic_quantum.canvas
-import traffic_quantum.video_canvas
-import traffic_quantum.emergency
-import traffic_quantum.simulator
-import traffic_quantum.vision
+if os.getenv("DEBUG", "").lower() in ("true", "1", "yes"):
+    import importlib
+    import traffic_quantum.canvas
+    import traffic_quantum.video_canvas
+    import traffic_quantum.emergency
+    import traffic_quantum.simulator
+    import traffic_quantum.vision
 
-importlib.reload(traffic_quantum.canvas)
-importlib.reload(traffic_quantum.video_canvas)
-importlib.reload(traffic_quantum.emergency)
-importlib.reload(traffic_quantum.simulator)
-importlib.reload(traffic_quantum.vision)
+    importlib.reload(traffic_quantum.canvas)
+    importlib.reload(traffic_quantum.video_canvas)
+    importlib.reload(traffic_quantum.emergency)
+    importlib.reload(traffic_quantum.simulator)
+    importlib.reload(traffic_quantum.vision)
+
 
 from traffic_quantum.canvas import build_simulation_canvas
 from traffic_quantum.video_canvas import generate_video_canvas_html
@@ -43,14 +47,115 @@ from traffic_quantum.events import EventManager, EventType, TrafficEvent
 from traffic_quantum.metrics import MetricsEngine
 from traffic_quantum.network import RoadNetwork
 from traffic_quantum.quantum.qubo import TrafficQUBOBuilder
-from traffic_quantum.quantum.ibm_qpu import IBMQuantumManager
 from traffic_quantum.security import SecurityService
 from traffic_quantum.simulator import TrafficSimulator
 from traffic_quantum.scenarios import SCENARIO_SPECS
 
 
+REQUIRED_HARDWARE_FIELDS = [
+    "provider",
+    "exact_device_name",
+    "task_or_job_id",
+    "submission_timestamp",
+    "region",
+    "shots",
+]
+
+
+def load_latest_qpu_run():
+    """Loads the most recently recorded real-QPU hardware execution result, if any.
+    
+    Refuses to load/display any file as hardware if mandatory audit fields are missing.
+    """
+    results_dir = os.path.join(os.path.dirname(__file__), "results")
+    if not os.path.exists(results_dir):
+        return None
+    pattern = os.path.join(results_dir, "qpu_run_*.json")
+    files = glob.glob(pattern)
+    if not files:
+        return None
+    latest_file = max(files, key=os.path.getmtime)
+    try:
+        with open(latest_file, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            data["_filepath"] = latest_file
+            
+            # Audit field validation: Refuse to display if any mandatory hardware audit field is missing
+            missing = [f for f in REQUIRED_HARDWARE_FIELDS if not data.get(f)]
+            if missing:
+                return {
+                    "_error": f"Refusing to display {os.path.basename(latest_file)} as hardware: missing required audit fields: {', '.join(missing)}"
+                }
+            return data
+    except Exception:
+        return None
+
+
+def render_recorded_qpu_section():
+    """Renders the read-only Real Quantum Hardware Run section in the dashboard."""
+    st.markdown("---")
+    st.markdown("#### ⚛️ Real Quantum Hardware Run (Recorded)")
+    st.caption("Audited execution metrics and comparative distributions from physical quantum processor runs. Loaded read-only from `results/qpu_run_*.json`.")
+
+    qpu_run_data = load_latest_qpu_run()
+    if qpu_run_data is None:
+        st.info("ℹ️ No hardware run recorded yet.")
+        return
+    if "_error" in qpu_run_data:
+        st.error(f"🛑 {qpu_run_data['_error']}")
+        return
+
+    dev_name = str(qpu_run_data.get("exact_device_name", "Unknown Device"))
+    shots_val = qpu_run_data.get("shots", 0)
+    job_id = str(qpu_run_data.get("task_or_job_id", "N/A"))
+    date_str = str(qpu_run_data.get("submission_timestamp", ""))
+    metrics_dict = qpu_run_data.get("metrics", {})
+
+    best_samples = metrics_dict.get("best_of_samples", {})
+    hw_best = best_samples.get("hardware", {})
+    approx_ratio = hw_best.get("approximation_ratio", 0.0)
+
+    opt_probs = metrics_dict.get("probability_mass_on_exact_optimum", {})
+    opt_hw = opt_probs.get("hardware", 0.0)
+    opt_sim = opt_probs.get("ideal_simulator", 0.0)
+    tvd_val = metrics_dict.get("total_variation_distance", 0.0)
+
+    st.caption(f"Hardware Run Source: `{os.path.basename(qpu_run_data.get('_filepath', ''))}` | Label: {qpu_run_data.get('label', '')}")
+
+    qcol1, qcol2, qcol3, qcol4 = st.columns(4)
+    qcol1.metric("Device / QPU", dev_name.split("/")[-1] if "/" in dev_name else dev_name)
+    qcol2.metric("Task / Job ID", job_id[:18] + ("..." if len(job_id) > 18 else ""))
+    qcol3.metric("Shots", f"{shots_val:,}")
+    qcol4.metric("Approximation Ratio", f"{approx_ratio:.4f}")
+
+    qrow1, qrow2 = st.columns([5, 7])
+    with qrow1:
+        st.markdown("##### Execution Telemetry")
+        st.write(f"**Provider:** `{qpu_run_data.get('provider', '').upper()}`")
+        st.write(f"**Exact Device/ARN:** `{dev_name}`")
+        st.write(f"**Task/Job ID:** `{job_id}`")
+        st.write(f"**Submission Date (UTC):** `{date_str}`")
+        st.write(f"**Compiled Circuit Depth:** `{qpu_run_data.get('compiled_depth', 'N/A')}`")
+        st.write(f"**Two-Qubit Gates:** `{qpu_run_data.get('two_qubit_gate_count', 'N/A')}`")
+        st.write(f"**Git Commit:** `{qpu_run_data.get('git_commit_hash', 'unknown')[:8]}`")
+        st.write(f"**Optimum Hit (HW vs Sim):** `{opt_hw:.4f}` vs `{opt_sim:.4f}`")
+        st.write(f"**Total Variation Distance (TVD):** `{tvd_val:.4f}`")
+        hits_opt = metrics_dict.get("top_k_selection", {}).get("hits_exact_optimum", False)
+        st.write(f"**Top-4 Hits Exact Optimum:** `{'Yes' if hits_opt else 'No'}`")
+
+    with qrow2:
+        st.markdown("##### Hardware vs Ideal Simulator Distribution")
+        plot_rel = qpu_run_data.get("comparison_plot", "")
+        plot_abs = os.path.join(os.path.dirname(__file__), plot_rel) if plot_rel else None
+        if plot_abs and os.path.exists(plot_abs):
+            st.image(plot_abs, caption=f"Sampled on {dev_name}, angles trained on simulator", width='stretch')
+        else:
+            st.info("No comparison chart PNG generated for this recorded run.")
+
+
 # --- PAGE CONFIGURATION & STYLING ---
 st.set_page_config(
+
     page_title="Quantum Traffic Brain",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -326,7 +431,7 @@ with st.sidebar:
     )
     st.session_state.theme_choice_idx = theme_choices.index(block_palette)
 
-    if st.button("Load Google Maps Road Network", use_container_width=True):
+    if st.button("Load Google Maps Road Network", width='stretch'):
         st.session_state.theme_choice_idx = 3
         st.rerun()
 
@@ -370,7 +475,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### Live Simulation Control")
     auto_steps = st.slider("Smooth Run Steps", min_value=5, max_value=30, value=15, step=5)
-    auto_run_btn = st.button("Auto-Simulate (Smooth Live)", use_container_width=True, type="primary")
+    auto_run_btn = st.button("Auto-Simulate (Smooth Live)", width='stretch', type="primary")
 
     st.markdown("---")
     st.markdown("### Controller Configuration")
@@ -388,15 +493,15 @@ with st.sidebar:
 
     col_btn1, col_btn2 = st.columns(2)
     with col_btn1:
-        step_1 = st.button("Step 1s", use_container_width=True)
+        step_1 = st.button("Step 1s", width='stretch')
     with col_btn2:
-        step_5 = st.button("Step 5s", use_container_width=True)
+        step_5 = st.button("Step 5s", width='stretch')
 
     col_btn3, col_btn4 = st.columns(2)
     with col_btn3:
-        step_15 = st.button("Step 15s", use_container_width=True)
+        step_15 = st.button("Step 15s", width='stretch')
     with col_btn4:
-        reset_btn = st.button("Reset System", use_container_width=True)
+        reset_btn = st.button("Reset System", width='stretch')
 
     if reset_btn:
         seed = st.session_state.sim.seed
@@ -585,7 +690,7 @@ with tab_grid:
 
             col_sub1, col_sub2 = st.columns(2)
             with col_sub1:
-                if st.button("Inject Entry Vehicles", use_container_width=True, type="primary"):
+                if st.button("Inject Entry Vehicles", width='stretch', type="primary"):
                     total_inj = 0
                     for gid, count_v in st.session_state.entry_inflow_inputs.items():
                         if count_v > 0:
@@ -597,7 +702,7 @@ with tab_grid:
                     else:
                         st.warning("All entry counts are currently 0. Increase count or upload media on the right.")
             with col_sub2:
-                if st.button("Reset Entry Counts to 0", use_container_width=True):
+                if st.button("Reset Entry Counts to 0", width='stretch'):
                     for gid in st.session_state.entry_inflow_inputs:
                         st.session_state.entry_inflow_inputs[gid] = 0
                     st.rerun()
@@ -646,7 +751,7 @@ with tab_grid:
                             </div>""",
                             unsafe_allow_html=True,
                         )
-                        st.image(preview_pil, caption="Raw Upload Preview (before AI detection)", use_container_width=True)
+                        st.image(preview_pil, caption="Raw Upload Preview (before AI detection)", width='stretch')
                     except Exception:
                         st.info(f"Uploaded: **{uploaded_cctv.name}** ({file_size_kb} KB)")
 
@@ -658,7 +763,7 @@ with tab_grid:
 
                 if img_bgr is not None:
                     ann_rgb, detected_qty, detections = detector.detect_vehicles(img_bgr)
-                    st.image(ann_rgb, caption=f"AI Detection Result: {detected_qty} Vehicles Identified", use_container_width=True)
+                    st.image(ann_rgb, caption=f"AI Detection Result: {detected_qty} Vehicles Identified", width='stretch')
 
                     st.markdown(
                         f"""<div style="background: rgba(15,23,42,0.85); border: 1px solid #334155; border-radius: 8px; padding: 8px 12px; margin-bottom: 10px;">
@@ -675,9 +780,9 @@ with tab_grid:
 
                     btn_col1, btn_col2 = st.columns(2)
                     with btn_col1:
-                        apply_btn = st.button("Apply AI Count to Entries", use_container_width=True)
+                        apply_btn = st.button("Apply AI Count to Entries", width='stretch')
                     with btn_col2:
-                        start_sim_btn = st.button("Inject & Start Simulation", use_container_width=True, type="primary")
+                        start_sim_btn = st.button("Inject & Start Simulation", width='stretch', type="primary")
 
                     if (is_new_upload and auto_live_feed) or apply_btn or start_sim_btn:
                         st.session_state.last_cctv_file_hash = curr_file_hash
@@ -717,7 +822,7 @@ with tab_grid:
             with amb_c3:
                 st.write("")
                 st.write("")
-                if st.button("Launch Emergency Unit", use_container_width=True, type="primary"):
+                if st.button("Launch Emergency Unit", width='stretch', type="primary"):
                     p_to_node = {0: 0, 1: 1, 2: 2, 3: 0, 4: 3, 5: 3, 6: 4, 7: 5, 8: 2, 9: 5}
                     o_node = p_to_node[q_portal]
                     if o_node == q_dest:
@@ -771,7 +876,7 @@ with tab_grid:
         )
         chart_selection = st.plotly_chart(
             fig_canvas,
-            use_container_width=True,
+            width='stretch',
             key="sim_canvas",
             on_select="rerun",
             selection_mode=["points"],
@@ -840,13 +945,13 @@ with tab_grid:
                 "W (Cars)": q_lens["W"],
                 "Total Queue": sum(q_lens.values()),
             })
-        st.dataframe(pd.DataFrame(q_data), use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(q_data), width='stretch', hide_index=True)
 
     with col_status_right:
         st.subheader("Dynamic Disruptions")
         col_e1, col_e2 = st.columns(2)
         with col_e1:
-            if st.button("Simulate Incident (Link B-C)", use_container_width=True):
+            if st.button("Simulate Incident (Link B-C)", width='stretch'):
                 evt = TrafficEvent(
                     id="acc_live",
                     event_type=EventType.ACCIDENT,
@@ -859,7 +964,7 @@ with tab_grid:
                 st.rerun()
 
         with col_e2:
-            if st.button("Block Corridor (Link D-E)", use_container_width=True):
+            if st.button("Block Corridor (Link D-E)", width='stretch'):
                 evt = TrafficEvent(
                     id="close_live",
                     event_type=EventType.ROAD_CLOSURE,
@@ -1008,7 +1113,7 @@ with tab_driver:
         col_disp1, col_disp2, col_disp3 = st.columns(3)
         
         with col_disp1:
-            if st.button("Dispatch Emergency Unit", use_container_width=True, type="primary"):
+            if st.button("Dispatch Emergency Unit", width='stretch', type="primary"):
                 if origin_node == dest_node:
                     st.error("Origin and Destination must be distinct!")
                 else:
@@ -1027,7 +1132,7 @@ with tab_driver:
                         st.rerun()
 
         with col_disp2:
-            if st.button("Auto-Generate Dispatch", use_container_width=True):
+            if st.button("Auto-Generate Dispatch", width='stretch'):
                 all_nodes = list(net.graph.nodes)
                 rand_orig = random.choice(all_nodes)
                 rand_dest = random.choice([n for n in all_nodes if n != rand_orig])
@@ -1046,7 +1151,7 @@ with tab_driver:
                     st.rerun()
 
         with col_disp3:
-            if st.button("Dispatch 2nd Unit (Conflict Test)", use_container_width=True):
+            if st.button("Dispatch 2nd Unit (Conflict Test)", width='stretch'):
                 sec_orig = 2 if origin_node != 2 else 1
                 sec_dest = 3 if dest_node != 3 else 4
                 sec_mission = em_mgr.dispatch_ambulance(
@@ -1069,19 +1174,19 @@ with tab_driver:
             
             atk_c1, atk_c2, atk_c3 = st.columns(3)
             with atk_c1:
-                if st.button("Test Forged Token Attack", use_container_width=True):
+                if st.button("Test Forged Token Attack", width='stretch'):
                     bad_token = sec_svc.generate_token("rogue_actor") + "tampered_bits"
                     is_ok, claims, err = sec_svc.verify_token(bad_token)
                     sec_svc.log_audit_entry("rogue_actor", "spoofed_preemption_attempt", {"token": bad_token[:16] + "..."}, f"REJECTED: {err}")
                     st.error(f"Attack Rejected! Error: {err}")
             with atk_c2:
-                if st.button("Test Expired Token Attack", use_container_width=True):
+                if st.button("Test Expired Token Attack", width='stretch'):
                     exp_token = sec_svc.generate_token("expired_actor", validity_sec=-100)
                     is_ok, claims, err = sec_svc.verify_token(exp_token)
                     sec_svc.log_audit_entry("expired_actor", "expired_token_attempt", {}, f"REJECTED: {err}")
                     st.error(f"Attack Rejected! Error: {err}")
             with atk_c3:
-                if st.button("Test Rate-Limit Burst", use_container_width=True):
+                if st.button("Test Rate-Limit Burst", width='stretch'):
                     burst_client = f"burst_bot_{random.randint(100, 999)}"
                     rejected_at = None
                     for req_i in range(7):
@@ -1094,7 +1199,7 @@ with tab_driver:
                         st.warning(f"Rate Limiter Engaged! Request #{rejected_at} blocked: {r_msg}")
 
             # Cryptographic Hash Chain Audit Verification
-            if st.button("Verify Audit Log Cryptographic Hash Chain", use_container_width=True):
+            if st.button("Verify Audit Log Cryptographic Hash Chain", width='stretch'):
                 logs = sec_svc.read_audit_logs(limit=100)
                 if not logs:
                     st.info("Audit log is empty.")
@@ -1122,15 +1227,15 @@ with tab_driver:
             st.markdown("#### Manual Step Advance")
             d_btn1, d_btn2, d_btn3 = st.columns(3)
             with d_btn1:
-                if st.button("Step +1s", use_container_width=True):
+                if st.button("Step +1s", width='stretch'):
                     advance_simulation(1)
                     st.rerun()
             with d_btn2:
-                if st.button("Step +5s", use_container_width=True):
+                if st.button("Step +5s", width='stretch'):
                     advance_simulation(5)
                     st.rerun()
             with d_btn3:
-                if st.button("Step +15s", use_container_width=True):
+                if st.button("Step +15s", width='stretch'):
                     advance_simulation(15)
                     st.rerun()
 
@@ -1171,7 +1276,7 @@ with tab_driver:
                 active_mission=active_driver_mission,
                 block_color=selected_block_color,
             )
-            st.plotly_chart(fig_driver_canvas, use_container_width=True, key="driver_canvas_active")
+            st.plotly_chart(fig_driver_canvas, width='stretch', key="driver_canvas_active")
 
             st.markdown("#### Quantum Preemption Telemetry Impact")
             pcol1, pcol2, pcol3 = st.columns(3)
@@ -1199,7 +1304,7 @@ with tab_driver:
                 active_mission=None,
                 block_color=selected_block_color,
             )
-            st.plotly_chart(fig_idle_canvas, use_container_width=True, key="driver_canvas_idle")
+            st.plotly_chart(fig_idle_canvas, width='stretch', key="driver_canvas_idle")
 
 
 # --- TAB 3: QUANTUM OPTIMIZATION PANEL ---
@@ -1222,7 +1327,7 @@ with tab_quantum:
             text_auto=".2f",
         )
         fig_q.update_layout(margin=dict(l=20, r=20, t=30, b=20), height=380)
-        st.plotly_chart(fig_q, use_container_width=True)
+        st.plotly_chart(fig_q, width='stretch')
         st.caption(f"Offset C0: {C0:.2f} | Quadratic terms encode green waves and spillback prevention.")
 
     with qcol2:
@@ -1251,7 +1356,7 @@ with tab_quantum:
                 color_discrete_map={"Best Bitstring": "#00e5ff", "Candidate": "#3b82f6"},
             )
             fig_p.update_layout(margin=dict(l=20, r=20, t=30, b=20), height=380)
-            st.plotly_chart(fig_p, use_container_width=True)
+            st.plotly_chart(fig_p, width='stretch')
 
             qcard1, qcard2, qcard3 = st.columns(3)
             with qcard1:
@@ -1263,70 +1368,22 @@ with tab_quantum:
         else:
             st.info("Run simulation steps using Hybrid (QAOA) controller to populate the quantum state distribution.")
 
-    st.markdown("---")
-    st.markdown("#### ⚛️ IBM Quantum Platform & Qiskit Hardware Integration")
-    st.caption("Direct integration with IBM Quantum Cloud (Qiskit Runtime) for real QPU hardware execution and high-performance Qiskit Aer simulation.")
-
-    ibm_mgr = IBMQuantumManager()
-    ibm_col1, ibm_col2 = st.columns([5, 7])
-
-    with ibm_col1:
-        st.markdown("##### Cloud Connection Status")
-        if ibm_mgr.status.get("authenticated"):
-            st.success(f"🟢 Authenticated: {ibm_mgr.status.get('channel')}")
-            st.write(f"**Available Backends:** {', '.join(ibm_mgr.status.get('backends', []))}")
-        else:
-            st.warning("🟡 IBM Cloud IAM Token Configured")
-            st.caption(ibm_mgr.status.get("message"))
-            with st.expander("ℹ️ How to activate Free Qiskit Runtime QPU"):
-                st.markdown(
-                    """
-                    1. Go to **[IBM Cloud Qiskit Runtime](https://cloud.ibm.com/catalog/services/qiskit-runtime)**.
-                    2. Select the **Lite** (free) or standard plan and click **Create**.
-                    3. Your API key will automatically link to the provisioned QPU instance.
-                    4. Alternatively, copy your API token from **[quantum.ibm.com/account](https://quantum.ibm.com/account)**.
-                    """
-                )
-
-    with ibm_col2:
-        st.markdown("##### Execute QAOA Circuit on Qiskit")
-        qiskit_shots = st.select_slider("Measurement Shots", options=[128, 256, 512, 1024, 2048], value=512)
-        if st.button("🚀 Dispatch Circuit to Qiskit Aer Simulator", use_container_width=True):
-            with st.spinner("Executing QAOA ansatz on Qiskit backend..."):
-                q_res = ibm_mgr.run_qaoa_on_qiskit(Q, n_qubits=net.num_intersections, shots=qiskit_shots)
-                st.session_state.last_qiskit_result = q_res
-                st.success(f"Execution complete on backend: `{q_res.get('backend')}` in {q_res.get('execution_time_ms', 0)}ms!")
-
-        if "last_qiskit_result" in st.session_state:
-            q_res = st.session_state.last_qiskit_result
-            r_c1, r_c2, r_c3 = st.columns(3)
-            with r_c1:
-                st.metric("Job ID", q_res.get("job_id")[:12] + "...")
-            with r_c2:
-                st.metric("Circuit Depth", q_res.get("circuit_depth"))
-            with r_c3:
-                st.metric("Top Measured State", q_res.get("top_bitstring_str"))
-
-            counts_dict = q_res.get("counts", {})
-            df_counts = pd.DataFrame([{"State |x⟩": k, "Shots": v} for k, v in counts_dict.items()])
-            fig_qiskit = px.bar(df_counts, x="State |x⟩", y="Shots", title="Qiskit Measurement Histogram", color_discrete_sequence=["#00e5ff"])
-            fig_qiskit.update_layout(margin=dict(l=20, r=20, t=30, b=20), height=240)
-            st.plotly_chart(fig_qiskit, use_container_width=True)
 
     st.markdown("---")
-    st.markdown("#### ☁️ Amazon Braket Quantum Execution & S3 Cloud Telemetry")
-    st.caption("Live PennyLane QAOA execution running on Amazon Braket infrastructure with task outputs linked to Amazon S3.")
+    st.markdown("#### ☁️ Amazon Braket Simulator Execution (`braket.local.qubit` / Cloud Simulator)")
+    st.caption("Local & Cloud Braket simulation engine for QAOA parameter validation. For physical QPU hardware runs, see the recorded hardware section below.")
 
     br_col1, br_col2 = st.columns([5, 7])
     with br_col1:
-        st.markdown("##### Braket Environment & S3 Bucket")
-        st.success("🟢 AWS Braket Quantum Simulator (`braket.local.qubit`) Active")
+        st.markdown("##### Braket Simulator Environment & Destination")
+        st.success("🟢 Amazon Braket Local Device (`braket.local.qubit`) Active")
         st.write("**Target Grid:** 6 Junctions (A, B, C, D, E, F) | 6 Qubits")
-        st.write("**Amazon S3 Output Bucket:** `s3://amazon-braket-us-east-1-423623825133/traffic-qaoa-results`")
+        braket_s3_dest = os.getenv("AWS_BRAKET_S3_BUCKET", "Configured dynamically via AWS Session / default bucket")
+        st.write(f"**Amazon S3 Output Destination:** `{braket_s3_dest}`")
         st.write("**Variational Depth:** $p=2$ QAOA Layers (13 Pauli terms)")
 
-        if st.button("🚀 Re-Run QAOA on Amazon Braket", use_container_width=True):
-            with st.spinner("Submitting QAOA circuit to Amazon Braket engine..."):
+        if st.button("🚀 Re-Run QAOA on Local Braket Simulator (braket.local.qubit)", width='stretch'):
+            with st.spinner("Submitting QAOA circuit to local Braket simulator..."):
                 try:
                     import pennylane as qml_braket
                     # Use braket.local.qubit if available, otherwise default.qubit
@@ -1364,13 +1421,17 @@ with tab_quantum:
                     st.error(f"Execution Error: {b_err}")
 
     with br_col2:
-        st.markdown("##### Measured Quantum State Output (Amazon Braket)")
+        st.markdown("##### Measured Quantum State Output (Amazon Braket Simulator)")
         braket_img_path = os.path.join(os.path.dirname(__file__), "results", "braket_qaoa_output.png")
         if os.path.exists(braket_img_path):
-            st.image(braket_img_path, caption="Amazon Braket QAOA Output - Top Traffic Configurations (1000 Shots)", use_container_width=True)
-            st.caption("Optimal State: `|111111⟩` (Confidence: 15.60% — 10x above uniform random baseline). Decodes to uninterrupted East-West Green Wave across all 6 junctions.")
+            st.image(braket_img_path, caption="Amazon Braket QAOA Output - Top Traffic Configurations (1000 Shots on braket.local.qubit)", width='stretch')
+            st.caption("Empirical Finding: Evaluated on local Braket simulator. For physical QPU execution and noise analysis, see the recorded hardware run below.")
         else:
             st.info("Run the Amazon Braket notebook or CLI runner to view live chart.")
+
+    # Read-only Real Hardware Section in Tab 3
+    render_recorded_qpu_section()
+
 
 
 # --- TAB 4: CONTROLLER BENCHMARK COMPARISON ---
@@ -1392,7 +1453,7 @@ with tab_bench:
         selected_spec = SCENARIO_SPECS[bench_scenario_key]
         st.info(f"**Scenario Profile**: {selected_spec.description}")
 
-    if st.button("Execute Comparative Benchmark (60s Replay)", use_container_width=True):
+    if st.button("Execute Comparative Benchmark (60s Replay)", width='stretch'):
         with st.spinner(f"Executing multi-controller benchmark under {selected_spec.name}..."):
             bench_results = {}
             for c_name, c_inst in [
@@ -1428,7 +1489,7 @@ with tab_bench:
                 bench_results[c_name] = st.session_state.metrics_engine.compute_run_metrics(sim_bench)
 
             df_comp = st.session_state.metrics_engine.generate_comparison_table(bench_results)
-            st.dataframe(df_comp, use_container_width=True, hide_index=True)
+            st.dataframe(df_comp, width='stretch', hide_index=True)
 
             bcol1, bcol2 = st.columns(2)
             with bcol1:
@@ -1440,7 +1501,7 @@ with tab_bench:
                     color="Controller",
                     color_discrete_sequence=["#64748b", "#3b82f6", "#00d2ff"],
                 )
-                st.plotly_chart(fig_wait, use_container_width=True)
+                st.plotly_chart(fig_wait, width='stretch')
             with bcol2:
                 fig_fuel = px.bar(
                     df_comp,
@@ -1450,7 +1511,7 @@ with tab_bench:
                     color="Controller",
                     color_discrete_sequence=["#64748b", "#3b82f6", "#00d2ff"],
                 )
-                st.plotly_chart(fig_fuel, use_container_width=True)
+                st.plotly_chart(fig_fuel, width='stretch')
 
 
 # --- TAB 5: SCIENTIFIC EVIDENCE & BENCHMARK SUITE ---
@@ -1470,7 +1531,7 @@ with tab_evidence:
         df_sc = pd.read_csv(sc_summary_file)
         st.dataframe(
             df_sc[["Scenario", "Controller", "Avg Wait (s)", "Throughput (cpm)", "Phase Switches", "Est. Fuel (L)"]],
-            use_container_width=True,
+            width='stretch',
             hide_index=True,
         )
 
@@ -1501,7 +1562,7 @@ with tab_evidence:
     bench_summary_file = os.path.join(os.path.dirname(__file__), "results", "benchmark_summary.csv")
     if os.path.exists(bench_summary_file):
         df_bench = pd.read_csv(bench_summary_file)
-        st.dataframe(df_bench, use_container_width=True, hide_index=True)
+        st.dataframe(df_bench, width='stretch', hide_index=True)
         st.caption(
             "*Note on Environmental Metrics: Fuel and CO₂ are derived scalar multiples of idle delay using typical automotive assumptions (0.8 L/hr idle rate and 2.31 kg CO₂/L petrol). "
             "They move directly with wait time and do not represent independent empirical evidence. "
@@ -1519,7 +1580,7 @@ with tab_evidence:
     )
     preempt_png = os.path.join(os.path.dirname(__file__), "results", "preemption_tradeoff.png")
     if os.path.exists(preempt_png):
-        st.image(preempt_png, caption="Pareto Trade-off: Ambulance Travel Time vs Extra Delay Imposed on Normal Traffic (20 Seeds)", use_container_width=True)
+        st.image(preempt_png, caption="Pareto Trade-off: Ambulance Travel Time vs Extra Delay Imposed on Normal Traffic (20 Seeds)", width='stretch')
         st.caption(
             "Empirical Finding: Hard override clears corridors fastest (8.0s, +1.75s extra cross delay). Soft QUBO bias clears corridors in 11.75s (+1.38s extra cross delay). "
             "Note: Above $W_{emerg} = 15$, the binary decision space saturates identically. The collateral delay difference between soft preemption and hard override is modest (~0.37s per vehicle)."
@@ -1532,7 +1593,7 @@ with tab_evidence:
     with q_col1:
         depth_png = os.path.join(os.path.dirname(__file__), "results", "qaoa_depth_vs_ratio.png")
         if os.path.exists(depth_png):
-            st.image(depth_png, caption="QAOA Approximation Ratio vs Circuit Depth p (1-4) across 20 Traffic Snapshots", use_container_width=True)
+            st.image(depth_png, caption="QAOA Approximation Ratio vs Circuit Depth p (1-4) across 20 Traffic Snapshots", width='stretch')
             st.caption(
                 "Depth Scaling: For a 6-qubit system, barren plateaus do not occur. Rather, increasing circuit depth to p=3/4 doubles the parameter space (2p = 6 to 8 variational angles); "
                 "under a bounded budget of 25 COBYLA steps, the classical optimizer cannot reliably converge on these higher-dimensional landscapes, making p=2 the empirical sweet spot."
@@ -1540,7 +1601,7 @@ with tab_evidence:
     with q_col2:
         noise_png = os.path.join(os.path.dirname(__file__), "results", "qaoa_noise_study.png")
         if os.path.exists(noise_png):
-            st.image(noise_png, caption="QAOA Noise Sensitivity (PennyLane default.mixed Depolarizing Noise)", use_container_width=True)
+            st.image(noise_png, caption="QAOA Noise Sensitivity (PennyLane default.mixed Depolarizing Noise)", width='stretch')
             st.caption(
                 "Noise Sensitivity: Under 25 bounded COBYLA steps on mixed-state density matrices, noise study results are inconclusive due to optimizer convergence variance and finite sampling (noise cannot physically improve solution quality)."
             )
@@ -1555,22 +1616,26 @@ with tab_evidence:
     )
     scaling_png = os.path.join(os.path.dirname(__file__), "results", "scaling_curve.png")
     if os.path.exists(scaling_png):
-        st.image(scaling_png, caption="Classical Brute-Force Wall-Clock Scaling (N=4 to N=24)", use_container_width=True)
+        st.image(scaling_png, caption="Classical Brute-Force Wall-Clock Scaling (N=4 to N=24)", width='stretch')
 
-    # Section 5: Real Cloud Quantum Hardware & Amazon Braket Execution
+    # Section 6: Amazon Braket Simulation & Cloud Telemetry
     st.markdown("---")
-    st.markdown("#### 6. Real Cloud Quantum Execution: Amazon Braket S3 Run")
+    st.markdown("#### 6. Amazon Braket Simulation & Cloud Telemetry")
+    braket_s3_dest = os.getenv("AWS_BRAKET_S3_BUCKET", "Configured dynamically via AWS Session / default bucket")
     st.markdown(
-        "Empirical validation running the 6-intersection urban grid QAOA circuit via **PennyLane on Amazon Braket** "
-        "(Task destination: `s3://amazon-braket-us-east-1-423623825133/traffic-qaoa-results`)."
+        f"Validation running the 6-intersection urban grid QAOA circuit via **PennyLane on Amazon Braket** "
+        f"(Task destination: `{braket_s3_dest}`)."
     )
     braket_png = os.path.join(os.path.dirname(__file__), "results", "braket_qaoa_output.png")
     if os.path.exists(braket_png):
-        st.image(braket_png, caption="Amazon Braket QAOA Output - Top Traffic Configurations (1000 Shots)", use_container_width=True)
+        st.image(braket_png, caption="Amazon Braket QAOA Output - Top Traffic Configurations (1000 Shots on braket.local.qubit)", width='stretch')
         st.caption(
-            "Empirical Finding: In a 64-state Hilbert space ($2^6$), uniform chance is 1.56%. The QAOA circuit concentrates 15.60% probability mass "
-            "(10x amplification) onto the optimal ground state `|111111⟩`, creating a synchronized arterial green wave across Junctions A, B, C, D, E, and F."
+            "Empirical Finding: Evaluated on local Braket simulator. The circuit concentrates probability mass onto low-cost green wave states across junctions."
         )
+
+    # Section 7: Real Quantum Hardware Run (Recorded)
+    render_recorded_qpu_section()
+
 
 
 # --- TAB 6: SECURITY & EMERGENCY DISPATCH ---
@@ -1582,6 +1647,8 @@ with tab_security:
     scol1, scol2 = st.columns([6, 6])
     with scol1:
         st.markdown("#### Request Preemption (Authenticated Dispatch)")
+        if getattr(sec_svc.config.security, "jwt_secret_is_ephemeral", False):
+            st.warning("⚠️ Ephemeral JWT secret generated at startup (`JWT_SECRET` not configured in .env). Tokens will not survive application restarts.")
         client_id_input = st.text_input("Emergency Dispatch Unit ID", value="ems_unit_108")
         
         token_input = st.text_area(
@@ -1596,7 +1663,7 @@ with tab_security:
         with pcol2:
             dest_choice = st.selectbox("Destination Intersection", range(net.num_intersections), format_func=lambda x: f"Junction {junction_letters[x]}", index=min(5, net.num_intersections - 1))
 
-        if st.button("Authenticate & Dispatch Emergency Unit", use_container_width=True):
+        if st.button("Authenticate & Dispatch Emergency Unit", width='stretch'):
             is_valid_req, err_msg = sec_svc.validate_emergency_request(
                 orig_choice, dest_choice, net.num_intersections, token_input
             )
@@ -1634,6 +1701,6 @@ with tab_security:
         st.markdown("#### Cryptographic Audit Log (Append-Only SHA-256 Chaining)")
         audit_records = sec_svc.read_audit_logs(limit=10)
         if audit_records:
-            st.dataframe(pd.DataFrame(audit_records), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(audit_records), width='stretch', hide_index=True)
         else:
             st.info("No security preemption events recorded yet in audit_log.jsonl.")
