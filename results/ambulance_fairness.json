@@ -1,0 +1,2333 @@
+{
+  "summary": [
+    {
+      "Scenario": "Moderate Load (75-80% Saturation)",
+      "Scenario_ID": "moderate_load",
+      "Controller": "Fixed-Timing (No Preemption)",
+      "Vehicle Wait Mean (s)": 27.49,
+      "Vehicle Wait 95% CI": "[27.15, 27.83]",
+      "Ambulance Time Mean (s)": 19.9,
+      "Ambulance Time 95% CI": "[14.43, 25.37]",
+      "Ambulance Time Std (s)": 12.49,
+      "Extra Delay (s)": 0.0,
+      "Throughput (cpm)": 99.2,
+      "Route_Description": "Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+    },
+    {
+      "Scenario": "Moderate Load (75-80% Saturation)",
+      "Scenario_ID": "moderate_load",
+      "Controller": "Fixed + Hard Preemption",
+      "Vehicle Wait Mean (s)": 27.5,
+      "Vehicle Wait 95% CI": "[27.16, 27.84]",
+      "Ambulance Time Mean (s)": 8.0,
+      "Ambulance Time 95% CI": "[8.00, 8.00]",
+      "Ambulance Time Std (s)": 0.0,
+      "Extra Delay (s)": 0.03,
+      "Throughput (cpm)": 99.2,
+      "Route_Description": "Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+    },
+    {
+      "Scenario": "Moderate Load (75-80% Saturation)",
+      "Scenario_ID": "moderate_load",
+      "Controller": "Rule-Based (No Preemption)",
+      "Vehicle Wait Mean (s)": 17.7,
+      "Vehicle Wait 95% CI": "[17.45, 17.95]",
+      "Ambulance Time Mean (s)": 24.65,
+      "Ambulance Time 95% CI": "[18.48, 30.82]",
+      "Ambulance Time Std (s)": 14.07,
+      "Extra Delay (s)": 0.0,
+      "Throughput (cpm)": 101.1,
+      "Route_Description": "Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+    },
+    {
+      "Scenario": "Moderate Load (75-80% Saturation)",
+      "Scenario_ID": "moderate_load",
+      "Controller": "Rule-Based + Hard Preemption",
+      "Vehicle Wait Mean (s)": 17.56,
+      "Vehicle Wait 95% CI": "[17.32, 17.81]",
+      "Ambulance Time Mean (s)": 8.0,
+      "Ambulance Time 95% CI": "[8.00, 8.00]",
+      "Ambulance Time Std (s)": 0.0,
+      "Extra Delay (s)": 0.0,
+      "Throughput (cpm)": 101.0,
+      "Route_Description": "Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+    },
+    {
+      "Scenario": "Moderate Load (75-80% Saturation)",
+      "Scenario_ID": "moderate_load",
+      "Controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "Vehicle Wait Mean (s)": 18.11,
+      "Vehicle Wait 95% CI": "[17.89, 18.32]",
+      "Ambulance Time Mean (s)": 9.25,
+      "Ambulance Time 95% CI": "[8.28, 10.22]",
+      "Ambulance Time Std (s)": 2.22,
+      "Extra Delay (s)": 0.0,
+      "Throughput (cpm)": 100.9,
+      "Route_Description": "Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+    },
+    {
+      "Scenario": "Moderate Load (75-80% Saturation)",
+      "Scenario_ID": "moderate_load",
+      "Controller": "Hybrid (QAOA) (Soft QUBO)",
+      "Vehicle Wait Mean (s)": 19.86,
+      "Vehicle Wait 95% CI": "[19.38, 20.34]",
+      "Ambulance Time Mean (s)": 8.25,
+      "Ambulance Time 95% CI": "[7.76, 8.74]",
+      "Ambulance Time Std (s)": 1.12,
+      "Extra Delay (s)": 0.0,
+      "Throughput (cpm)": 101.1,
+      "Route_Description": "Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+    },
+    {
+      "Scenario": "Rush-Hour (3x Arterial Demand)",
+      "Scenario_ID": "rush_hour",
+      "Controller": "Fixed-Timing (No Preemption)",
+      "Vehicle Wait Mean (s)": 105.2,
+      "Vehicle Wait 95% CI": "[103.78, 106.61]",
+      "Ambulance Time Mean (s)": 25.15,
+      "Ambulance Time 95% CI": "[18.08, 32.22]",
+      "Ambulance Time Std (s)": 16.12,
+      "Extra Delay (s)": 0.0,
+      "Throughput (cpm)": 105.2,
+      "Route_Description": "Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+    },
+    {
+      "Scenario": "Rush-Hour (3x Arterial Demand)",
+      "Scenario_ID": "rush_hour",
+      "Controller": "Fixed + Hard Preemption",
+      "Vehicle Wait Mean (s)": 104.27,
+      "Vehicle Wait 95% CI": "[102.86, 105.68]",
+      "Ambulance Time Mean (s)": 8.0,
+      "Ambulance Time 95% CI": "[8.00, 8.00]",
+      "Ambulance Time Std (s)": 0.0,
+      "Extra Delay (s)": 0.0,
+      "Throughput (cpm)": 105.5,
+      "Route_Description": "Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+    },
+    {
+      "Scenario": "Rush-Hour (3x Arterial Demand)",
+      "Scenario_ID": "rush_hour",
+      "Controller": "Rule-Based (No Preemption)",
+      "Vehicle Wait Mean (s)": 80.47,
+      "Vehicle Wait 95% CI": "[77.99, 82.95]",
+      "Ambulance Time Mean (s)": 29.15,
+      "Ambulance Time 95% CI": "[23.04, 35.26]",
+      "Ambulance Time Std (s)": 13.94,
+      "Extra Delay (s)": 0.0,
+      "Throughput (cpm)": 117.9,
+      "Route_Description": "Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+    },
+    {
+      "Scenario": "Rush-Hour (3x Arterial Demand)",
+      "Scenario_ID": "rush_hour",
+      "Controller": "Rule-Based + Hard Preemption",
+      "Vehicle Wait Mean (s)": 81.44,
+      "Vehicle Wait 95% CI": "[79.02, 83.86]",
+      "Ambulance Time Mean (s)": 8.0,
+      "Ambulance Time 95% CI": "[8.00, 8.00]",
+      "Ambulance Time Std (s)": 0.0,
+      "Extra Delay (s)": 0.0,
+      "Throughput (cpm)": 117.3,
+      "Route_Description": "Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+    },
+    {
+      "Scenario": "Rush-Hour (3x Arterial Demand)",
+      "Scenario_ID": "rush_hour",
+      "Controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "Vehicle Wait Mean (s)": 81.91,
+      "Vehicle Wait 95% CI": "[79.83, 84.00]",
+      "Ambulance Time Mean (s)": 9.25,
+      "Ambulance Time 95% CI": "[8.28, 10.22]",
+      "Ambulance Time Std (s)": 2.22,
+      "Extra Delay (s)": 0.0,
+      "Throughput (cpm)": 117.5,
+      "Route_Description": "Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+    },
+    {
+      "Scenario": "Rush-Hour (3x Arterial Demand)",
+      "Scenario_ID": "rush_hour",
+      "Controller": "Hybrid (QAOA) (Soft QUBO)",
+      "Vehicle Wait Mean (s)": 87.57,
+      "Vehicle Wait 95% CI": "[85.38, 89.77]",
+      "Ambulance Time Mean (s)": 8.5,
+      "Ambulance Time 95% CI": "[7.83, 9.17]",
+      "Ambulance Time Std (s)": 1.54,
+      "Extra Delay (s)": 0.0,
+      "Throughput (cpm)": 115.1,
+      "Route_Description": "Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+    }
+  ],
+  "records": [
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 100,
+      "avg_wait_sec": 27.12,
+      "ambulance_time_sec": 24.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 101,
+      "avg_wait_sec": 27.07,
+      "ambulance_time_sec": 18.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 98.2
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 102,
+      "avg_wait_sec": 27.19,
+      "ambulance_time_sec": 18.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 97.0
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 103,
+      "avg_wait_sec": 26.93,
+      "ambulance_time_sec": 16.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 98.4
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 104,
+      "avg_wait_sec": 27.02,
+      "ambulance_time_sec": 20.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.0
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 106,
+      "avg_wait_sec": 27.68,
+      "ambulance_time_sec": 14.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 95.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 105,
+      "avg_wait_sec": 26.67,
+      "ambulance_time_sec": 55.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.1
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 107,
+      "avg_wait_sec": 27.27,
+      "ambulance_time_sec": 14.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.4
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 108,
+      "avg_wait_sec": 29.0,
+      "ambulance_time_sec": 22.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 98.0
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 109,
+      "avg_wait_sec": 27.98,
+      "ambulance_time_sec": 12.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.9
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 110,
+      "avg_wait_sec": 26.52,
+      "ambulance_time_sec": 14.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 98.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 111,
+      "avg_wait_sec": 28.77,
+      "ambulance_time_sec": 16.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.7
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 112,
+      "avg_wait_sec": 26.81,
+      "ambulance_time_sec": 16.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 97.2
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 113,
+      "avg_wait_sec": 27.72,
+      "ambulance_time_sec": 12.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 114,
+      "avg_wait_sec": 27.32,
+      "ambulance_time_sec": 55.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 98.9
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 115,
+      "avg_wait_sec": 27.59,
+      "ambulance_time_sec": 20.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.9
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 116,
+      "avg_wait_sec": 27.17,
+      "ambulance_time_sec": 12.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.4
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 117,
+      "avg_wait_sec": 26.94,
+      "ambulance_time_sec": 12.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.4
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 118,
+      "avg_wait_sec": 27.6,
+      "ambulance_time_sec": 14.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 101.7
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 100,
+      "avg_wait_sec": 17.2,
+      "ambulance_time_sec": 73.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 101.5
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 119,
+      "avg_wait_sec": 29.43,
+      "ambulance_time_sec": 14.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.1
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 101,
+      "avg_wait_sec": 18.01,
+      "ambulance_time_sec": 18.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.3
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 102,
+      "avg_wait_sec": 17.46,
+      "ambulance_time_sec": 18.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.1
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 104,
+      "avg_wait_sec": 17.18,
+      "ambulance_time_sec": 17.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 103,
+      "avg_wait_sec": 17.56,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.6
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 105,
+      "avg_wait_sec": 17.4,
+      "ambulance_time_sec": 33.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 106,
+      "avg_wait_sec": 16.64,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 97.1
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 107,
+      "avg_wait_sec": 16.86,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 108,
+      "avg_wait_sec": 18.58,
+      "ambulance_time_sec": 51.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.3
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 110,
+      "avg_wait_sec": 17.14,
+      "ambulance_time_sec": 25.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.5
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 109,
+      "avg_wait_sec": 18.02,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.4
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 111,
+      "avg_wait_sec": 18.76,
+      "ambulance_time_sec": 16.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 103.1
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 114,
+      "avg_wait_sec": 17.38,
+      "ambulance_time_sec": 15.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.5
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 112,
+      "avg_wait_sec": 18.27,
+      "ambulance_time_sec": 16.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.0
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 113,
+      "avg_wait_sec": 17.59,
+      "ambulance_time_sec": 13.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.5
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 115,
+      "avg_wait_sec": 18.21,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 101.2
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 117,
+      "avg_wait_sec": 17.75,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 116,
+      "avg_wait_sec": 18.13,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.1
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 118,
+      "avg_wait_sec": 18.26,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 105.1
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 119,
+      "avg_wait_sec": 17.54,
+      "ambulance_time_sec": 14.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 104.0
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 101,
+      "avg_wait_sec": 18.21,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.3
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 100,
+      "avg_wait_sec": 17.87,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 101.4
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 102,
+      "avg_wait_sec": 17.95,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 98.6
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 103,
+      "avg_wait_sec": 18.05,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.1
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 105,
+      "avg_wait_sec": 18.29,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 104,
+      "avg_wait_sec": 18.85,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.5
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 106,
+      "avg_wait_sec": 18.14,
+      "ambulance_time_sec": 13.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 97.1
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 107,
+      "avg_wait_sec": 17.54,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 101.3
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 108,
+      "avg_wait_sec": 18.54,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.7
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 109,
+      "avg_wait_sec": 17.29,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.4
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 110,
+      "avg_wait_sec": 17.65,
+      "ambulance_time_sec": 13.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.7
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 111,
+      "avg_wait_sec": 17.8,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 112,
+      "avg_wait_sec": 18.84,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.0
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 114,
+      "avg_wait_sec": 18.31,
+      "ambulance_time_sec": 13.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.5
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 113,
+      "avg_wait_sec": 17.93,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.3
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 115,
+      "avg_wait_sec": 18.48,
+      "ambulance_time_sec": 13.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 101.2
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 116,
+      "avg_wait_sec": 18.18,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 101.5
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 117,
+      "avg_wait_sec": 17.18,
+      "ambulance_time_sec": 13.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 101.0
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 118,
+      "avg_wait_sec": 18.99,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 103.9
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 119,
+      "avg_wait_sec": 18.01,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 104.0
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 103,
+      "avg_wait_sec": 20.07,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.6
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 100,
+      "avg_wait_sec": 20.06,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.5
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 102,
+      "avg_wait_sec": 18.37,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 98.9
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 101,
+      "avg_wait_sec": 19.36,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.3
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 104,
+      "avg_wait_sec": 21.65,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.5
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 106,
+      "avg_wait_sec": 19.81,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 97.1
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 105,
+      "avg_wait_sec": 20.36,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 107,
+      "avg_wait_sec": 20.5,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 101.0
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 108,
+      "avg_wait_sec": 19.1,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.7
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 109,
+      "avg_wait_sec": 20.01,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.9
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 111,
+      "avg_wait_sec": 19.18,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 110,
+      "avg_wait_sec": 17.96,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.7
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 112,
+      "avg_wait_sec": 20.09,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 98.8
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 100,
+      "avg_wait_sec": 108.22,
+      "ambulance_time_sec": 55.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 105.0
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 114,
+      "avg_wait_sec": 18.38,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 113,
+      "avg_wait_sec": 20.49,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 103.2
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 101,
+      "avg_wait_sec": 104.98,
+      "ambulance_time_sec": 18.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.6
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 102,
+      "avg_wait_sec": 107.28,
+      "ambulance_time_sec": 55.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.4
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 103,
+      "avg_wait_sec": 99.36,
+      "ambulance_time_sec": 16.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 107.1
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 104,
+      "avg_wait_sec": 101.44,
+      "ambulance_time_sec": 20.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 106.2
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 105,
+      "avg_wait_sec": 104.92,
+      "ambulance_time_sec": 55.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 104.7
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 106,
+      "avg_wait_sec": 101.17,
+      "ambulance_time_sec": 20.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 103.5
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 107,
+      "avg_wait_sec": 104.93,
+      "ambulance_time_sec": 14.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 107.6
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 115,
+      "avg_wait_sec": 20.32,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.1
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 108,
+      "avg_wait_sec": 108.33,
+      "ambulance_time_sec": 22.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.7
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 109,
+      "avg_wait_sec": 109.26,
+      "ambulance_time_sec": 12.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 106.9
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 110,
+      "avg_wait_sec": 101.88,
+      "ambulance_time_sec": 18.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 105.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 111,
+      "avg_wait_sec": 103.48,
+      "ambulance_time_sec": 16.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 105.8
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 112,
+      "avg_wait_sec": 106.23,
+      "ambulance_time_sec": 55.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.4
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 113,
+      "avg_wait_sec": 101.61,
+      "ambulance_time_sec": 12.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 106.2
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 114,
+      "avg_wait_sec": 109.89,
+      "ambulance_time_sec": 35.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 106.5
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 115,
+      "avg_wait_sec": 106.27,
+      "ambulance_time_sec": 20.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 104.9
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 116,
+      "avg_wait_sec": 104.36,
+      "ambulance_time_sec": 12.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 105.0
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 100,
+      "avg_wait_sec": 80.98,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 119.1
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 117,
+      "avg_wait_sec": 110.85,
+      "ambulance_time_sec": 20.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 105.0
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 118,
+      "avg_wait_sec": 107.0,
+      "ambulance_time_sec": 14.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 105.7
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed-Timing (No Preemption)",
+      "seed": 119,
+      "avg_wait_sec": 102.48,
+      "ambulance_time_sec": 14.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 109.1
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 101,
+      "avg_wait_sec": 76.12,
+      "ambulance_time_sec": 25.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.1
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 102,
+      "avg_wait_sec": 85.21,
+      "ambulance_time_sec": 53.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 114.0
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 103,
+      "avg_wait_sec": 78.48,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 118.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 105,
+      "avg_wait_sec": 78.23,
+      "ambulance_time_sec": 75.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 119.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 104,
+      "avg_wait_sec": 75.57,
+      "ambulance_time_sec": 25.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.0
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 106,
+      "avg_wait_sec": 72.6,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 118.7
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 107,
+      "avg_wait_sec": 83.07,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 119.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 108,
+      "avg_wait_sec": 79.9,
+      "ambulance_time_sec": 41.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 118.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 110,
+      "avg_wait_sec": 75.38,
+      "ambulance_time_sec": 18.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 119.2
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 109,
+      "avg_wait_sec": 87.6,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 118.6
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 111,
+      "avg_wait_sec": 74.83,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 119.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 112,
+      "avg_wait_sec": 75.97,
+      "ambulance_time_sec": 45.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.0
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 116,
+      "avg_wait_sec": 18.46,
+      "ambulance_time_sec": 13.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.8
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 114,
+      "avg_wait_sec": 90.52,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 115,
+      "avg_wait_sec": 80.38,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 116.9
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 113,
+      "avg_wait_sec": 79.09,
+      "ambulance_time_sec": 25.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 118.7
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 116,
+      "avg_wait_sec": 72.41,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 120.2
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 117,
+      "avg_wait_sec": 89.82,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 115.0
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 118,
+      "avg_wait_sec": 84.72,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 118.0
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based (No Preemption)",
+      "seed": 119,
+      "avg_wait_sec": 88.52,
+      "ambulance_time_sec": 23.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 116.2
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 101,
+      "avg_wait_sec": 76.33,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.8
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 100,
+      "avg_wait_sec": 80.96,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 119.9
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 102,
+      "avg_wait_sec": 85.0,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 114.0
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 103,
+      "avg_wait_sec": 79.73,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.2
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 104,
+      "avg_wait_sec": 80.54,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 107,
+      "avg_wait_sec": 79.2,
+      "ambulance_time_sec": 13.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 120.5
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 105,
+      "avg_wait_sec": 86.05,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 116.2
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 106,
+      "avg_wait_sec": 76.14,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 116.9
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 108,
+      "avg_wait_sec": 80.09,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 118.1
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 109,
+      "avg_wait_sec": 91.78,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 115.7
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 112,
+      "avg_wait_sec": 81.42,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 115.0
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 110,
+      "avg_wait_sec": 76.57,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 119.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 111,
+      "avg_wait_sec": 80.52,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.6
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 113,
+      "avg_wait_sec": 80.1,
+      "ambulance_time_sec": 13.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 119.0
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 114,
+      "avg_wait_sec": 86.83,
+      "ambulance_time_sec": 13.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 119.5
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 115,
+      "avg_wait_sec": 79.09,
+      "ambulance_time_sec": 13.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.4
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 116,
+      "avg_wait_sec": 75.85,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 119.6
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 118,
+      "avg_wait_sec": 84.49,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.2
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 117,
+      "avg_wait_sec": 91.91,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 114.9
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (Brute-Force) (Soft QUBO)",
+      "seed": 119,
+      "avg_wait_sec": 85.61,
+      "ambulance_time_sec": 13.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.2
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 117,
+      "avg_wait_sec": 19.76,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.7
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 118,
+      "avg_wait_sec": 21.08,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 104.6
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 119,
+      "avg_wait_sec": 22.17,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 104.0
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 102,
+      "avg_wait_sec": 87.62,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 112.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 101,
+      "avg_wait_sec": 87.23,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 113.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 104,
+      "avg_wait_sec": 87.73,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 115.9
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 103,
+      "avg_wait_sec": 90.12,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 113.7
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 100,
+      "avg_wait_sec": 86.92,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.4
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 105,
+      "avg_wait_sec": 86.66,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 116.2
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 106,
+      "avg_wait_sec": 80.17,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 115.1
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 107,
+      "avg_wait_sec": 82.94,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 118.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 109,
+      "avg_wait_sec": 101.53,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 112.5
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 108,
+      "avg_wait_sec": 85.59,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 116.2
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 111,
+      "avg_wait_sec": 86.92,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 112.9
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 110,
+      "avg_wait_sec": 81.63,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.1
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 112,
+      "avg_wait_sec": 89.12,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 111.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 113,
+      "avg_wait_sec": 84.97,
+      "ambulance_time_sec": 13.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 115.4
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 114,
+      "avg_wait_sec": 96.29,
+      "ambulance_time_sec": 13.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 116.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 115,
+      "avg_wait_sec": 86.34,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 115.2
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 116,
+      "avg_wait_sec": 80.47,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.2
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 117,
+      "avg_wait_sec": 91.62,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 114.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 118,
+      "avg_wait_sec": 88.1,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 116.6
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Hybrid (QAOA) (Soft QUBO)",
+      "seed": 119,
+      "avg_wait_sec": 89.52,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 115.4
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 100,
+      "avg_wait_sec": 27.11,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 100,
+      "avg_wait_sec": 17.07,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 101.5
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 101,
+      "avg_wait_sec": 27.11,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.04,
+      "throughput_cpm": 98.2
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 101,
+      "avg_wait_sec": 17.96,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.3
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 102,
+      "avg_wait_sec": 27.19,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 97.0
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 102,
+      "avg_wait_sec": 17.59,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.1
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 103,
+      "avg_wait_sec": 26.88,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 98.4
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 103,
+      "avg_wait_sec": 17.65,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.6
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 104,
+      "avg_wait_sec": 27.32,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.3,
+      "throughput_cpm": 99.0
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 104,
+      "avg_wait_sec": 18.03,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 105,
+      "avg_wait_sec": 26.81,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.14,
+      "throughput_cpm": 99.1
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 105,
+      "avg_wait_sec": 17.23,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 106,
+      "avg_wait_sec": 27.58,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 95.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 106,
+      "avg_wait_sec": 16.46,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 97.1
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 107,
+      "avg_wait_sec": 27.31,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.04,
+      "throughput_cpm": 99.4
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 107,
+      "avg_wait_sec": 16.89,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 108,
+      "avg_wait_sec": 29.03,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.03,
+      "throughput_cpm": 98.0
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 108,
+      "avg_wait_sec": 18.69,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.3
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 109,
+      "avg_wait_sec": 28.05,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.07,
+      "throughput_cpm": 100.9
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 109,
+      "avg_wait_sec": 18.04,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.4
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 110,
+      "avg_wait_sec": 26.48,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 98.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 110,
+      "avg_wait_sec": 17.14,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.5
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 111,
+      "avg_wait_sec": 28.75,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.7
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 111,
+      "avg_wait_sec": 17.48,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 103.1
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 112,
+      "avg_wait_sec": 26.81,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 97.2
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 112,
+      "avg_wait_sec": 17.96,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.0
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 113,
+      "avg_wait_sec": 27.65,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.8
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 113,
+      "avg_wait_sec": 17.74,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.5
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 114,
+      "avg_wait_sec": 27.31,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 98.9
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 114,
+      "avg_wait_sec": 17.45,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 100.0
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 115,
+      "avg_wait_sec": 27.65,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.06,
+      "throughput_cpm": 99.9
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 115,
+      "avg_wait_sec": 18.28,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 101.2
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 116,
+      "avg_wait_sec": 27.12,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.4
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 116,
+      "avg_wait_sec": 17.3,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 101.5
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 117,
+      "avg_wait_sec": 26.88,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 99.4
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 117,
+      "avg_wait_sec": 16.62,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 101.0
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 118,
+      "avg_wait_sec": 27.57,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 101.7
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 118,
+      "avg_wait_sec": 17.85,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 105.1
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 119,
+      "avg_wait_sec": 29.42,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.1
+    },
+    {
+      "scenario": "moderate_load",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 119,
+      "avg_wait_sec": 17.82,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 104.0
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 100,
+      "avg_wait_sec": 107.21,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 105.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 100,
+      "avg_wait_sec": 82.35,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 118.7
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 101,
+      "avg_wait_sec": 104.3,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.8
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 101,
+      "avg_wait_sec": 77.84,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.2
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 102,
+      "avg_wait_sec": 106.62,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.6
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 102,
+      "avg_wait_sec": 85.57,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 113.4
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 103,
+      "avg_wait_sec": 98.31,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 107.4
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 103,
+      "avg_wait_sec": 79.38,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.2
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 104,
+      "avg_wait_sec": 100.93,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 106.4
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 104,
+      "avg_wait_sec": 80.66,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 115.7
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 105,
+      "avg_wait_sec": 104.29,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 104.9
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 105,
+      "avg_wait_sec": 82.45,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.8
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 106,
+      "avg_wait_sec": 100.47,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 103.7
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 106,
+      "avg_wait_sec": 74.02,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.4
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 107,
+      "avg_wait_sec": 103.94,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 107.9
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 107,
+      "avg_wait_sec": 80.99,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 119.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 108,
+      "avg_wait_sec": 107.25,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 103.0
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 108,
+      "avg_wait_sec": 81.07,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.9
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 109,
+      "avg_wait_sec": 108.61,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 107.1
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 109,
+      "avg_wait_sec": 90.67,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 116.9
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 110,
+      "avg_wait_sec": 101.19,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 105.5
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 110,
+      "avg_wait_sec": 76.52,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 118.7
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 111,
+      "avg_wait_sec": 102.09,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 106.2
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 111,
+      "avg_wait_sec": 76.78,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 118.1
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 112,
+      "avg_wait_sec": 105.54,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 102.6
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 112,
+      "avg_wait_sec": 78.66,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 115.7
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 113,
+      "avg_wait_sec": 100.53,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 106.5
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 113,
+      "avg_wait_sec": 76.66,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 119.5
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 114,
+      "avg_wait_sec": 108.57,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 106.9
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 114,
+      "avg_wait_sec": 89.23,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.7
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 115,
+      "avg_wait_sec": 105.56,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 105.1
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 115,
+      "avg_wait_sec": 78.52,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 118.5
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 116,
+      "avg_wait_sec": 103.33,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 105.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 116,
+      "avg_wait_sec": 71.82,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 119.9
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 117,
+      "avg_wait_sec": 109.8,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 105.3
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 117,
+      "avg_wait_sec": 90.73,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 115.0
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 118,
+      "avg_wait_sec": 105.69,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 106.1
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 118,
+      "avg_wait_sec": 86.13,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 117.5
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Fixed + Hard Preemption",
+      "seed": 119,
+      "avg_wait_sec": 101.1,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 109.5
+    },
+    {
+      "scenario": "rush_hour",
+      "controller": "Rule-Based + Hard Preemption",
+      "seed": 119,
+      "avg_wait_sec": 88.79,
+      "ambulance_time_sec": 8.0,
+      "extra_delay_sec": 0.0,
+      "throughput_cpm": 114.8
+    }
+  ],
+  "metadata": {
+    "route": [
+      0,
+      1,
+      2,
+      5
+    ],
+    "num_edges": 3,
+    "free_flow_travel_time_sec": 24.0,
+    "explanation_8s_13s": "Route: Nodes [0, 1, 2, 5] (Guindy -> Saidapet -> Nandanam -> Thousand Lights). 3 directed edges with free-flow travel time 12s / 1.5 speed multiplier = 8s per edge = 24s total. When dispatched with dispatch_tick=15, the ambulance has progressed 15s by tick 15, leaving 9s of transit. 8s represents unimpeded arrival at tick 23 (23 - 15 = 8s) under all-green conditions. 13s represents arrival at tick 28 (28 - 15 = 13s), delayed by 5s due to one red phase or front-of-queue clearance."
+  }
+}

@@ -1,0 +1,13 @@
+Scenario,Scenario_ID,Controller,Vehicle Wait Mean (s),Vehicle Wait 95% CI,Ambulance Time Mean (s),Ambulance Time 95% CI,Ambulance Time Std (s),Extra Delay (s),Throughput (cpm),Route_Description
+Moderate Load (75-80% Saturation),moderate_load,Fixed-Timing (No Preemption),27.49,"[27.15, 27.83]",19.9,"[14.43, 25.37]",12.49,0.0,99.2,"Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+Moderate Load (75-80% Saturation),moderate_load,Fixed + Hard Preemption,27.5,"[27.16, 27.84]",8.0,"[8.00, 8.00]",0.0,0.03,99.2,"Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+Moderate Load (75-80% Saturation),moderate_load,Rule-Based (No Preemption),17.7,"[17.45, 17.95]",24.65,"[18.48, 30.82]",14.07,0.0,101.1,"Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+Moderate Load (75-80% Saturation),moderate_load,Rule-Based + Hard Preemption,17.56,"[17.32, 17.81]",8.0,"[8.00, 8.00]",0.0,0.0,101.0,"Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+Moderate Load (75-80% Saturation),moderate_load,Hybrid (Brute-Force) (Soft QUBO),18.11,"[17.89, 18.32]",9.25,"[8.28, 10.22]",2.22,0.0,100.9,"Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+Moderate Load (75-80% Saturation),moderate_load,Hybrid (QAOA) (Soft QUBO),19.86,"[19.38, 20.34]",8.25,"[7.76, 8.74]",1.12,0.0,101.1,"Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+Rush-Hour (3x Arterial Demand),rush_hour,Fixed-Timing (No Preemption),105.2,"[103.78, 106.61]",25.15,"[18.08, 32.22]",16.12,0.0,105.2,"Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+Rush-Hour (3x Arterial Demand),rush_hour,Fixed + Hard Preemption,104.27,"[102.86, 105.68]",8.0,"[8.00, 8.00]",0.0,0.0,105.5,"Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+Rush-Hour (3x Arterial Demand),rush_hour,Rule-Based (No Preemption),80.47,"[77.99, 82.95]",29.15,"[23.04, 35.26]",13.94,0.0,117.9,"Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+Rush-Hour (3x Arterial Demand),rush_hour,Rule-Based + Hard Preemption,81.44,"[79.02, 83.86]",8.0,"[8.00, 8.00]",0.0,0.0,117.3,"Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+Rush-Hour (3x Arterial Demand),rush_hour,Hybrid (Brute-Force) (Soft QUBO),81.91,"[79.83, 84.00]",9.25,"[8.28, 10.22]",2.22,0.0,117.5,"Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"
+Rush-Hour (3x Arterial Demand),rush_hour,Hybrid (QAOA) (Soft QUBO),87.57,"[85.38, 89.77]",8.5,"[7.83, 9.17]",1.54,0.0,115.1,"Path [0, 1, 2, 5], 4 nodes, 3 edges (0->1, 1->2, 2->5), 24s free-flow"

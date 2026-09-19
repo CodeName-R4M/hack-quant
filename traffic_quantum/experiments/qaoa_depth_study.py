@@ -54,7 +54,8 @@ def run_depth_study():
         print(f"Evaluating QAOA at depth p = {p} across 20 snapshots...")
         cfg = DEFAULT_CONFIG
         cfg.qaoa.p_layers = p
-        cfg.qaoa.max_iterations = 25
+        # Proportional budget: 2p variational parameters require scaled optimizer steps
+        cfg.qaoa.max_iterations = 20 + 20 * p
         solver = QAOATrafficSolver(num_qubits=6, config=cfg)
 
         for Q, C0, exact_cost in snapshots:
@@ -69,17 +70,22 @@ def run_depth_study():
     summary = {}
     for p in p_values:
         arr = results_by_p[p]["ratios"]
+        m_r = float(np.mean(arr))
+        s_r = float(np.std(arr))
+        ci_r = 1.96 * s_r / np.sqrt(len(arr))
         summary[str(p)] = {
             "p": p,
-            "mean_ratio": round(float(np.mean(arr)), 4),
-            "std_ratio": round(float(np.std(arr)), 4),
+            "max_iterations": 20 + 20 * p,
+            "mean_ratio": round(m_r, 4),
+            "std_ratio": round(s_r, 4),
+            "ci_95": round(ci_r, 4),
             "exact_hit_rate": round(results_by_p[p]["exact_hits"] / len(arr), 3),
         }
-        print(f"p = {p}: Mean Approx Ratio = {summary[str(p)]['mean_ratio']:.4f} "
-              f"+/- {summary[str(p)]['std_ratio']:.4f} | Exact Hit Rate: {summary[str(p)]['exact_hit_rate']*100:.1f}%")
+        print(f"p = {p}: Mean Approx Ratio = {m_r:.4f} +/- {ci_r:.4f} (95% CI) "
+              f"| Exact Hit Rate: {summary[str(p)]['exact_hit_rate']*100:.1f}%")
 
     os.makedirs("results", exist_ok=True)
-    with open("results/qaoa_depth_data.json", "w") as f:
+    with open("results/qaoa_depth_data.json", "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
 
     # Plot

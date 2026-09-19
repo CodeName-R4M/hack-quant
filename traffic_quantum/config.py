@@ -79,7 +79,7 @@ class QUBOConfig:
     w_spillback: float = 0.5      # Downstream spillback penalty (tuned on training seeds 1-5)
     w_emergency: float = 50.0     # Heavy linear bias when emergency vehicle approaches
     w_pedestrian: float = 2.0     # Linear penalty for queued pedestrian waiting
-    w_switch: float = 2.5         # Switching penalty (cost for flipping signal phase)
+    w_switch: float = 1.0         # Switching penalty (tuned on training seeds 1-5)
     spillback_threshold: float = 0.80  # Queue / capacity fraction considered spillback hazard
 
 
@@ -98,7 +98,7 @@ class QAOAConfig:
 @dataclass
 class HybridTimingConfig:
     """Classical timing engine for dynamic phase durations."""
-    reopt_interval_sec: int = 25  # Re-optimize phases every 20-30 seconds (stabilizes phase switching)
+    reopt_interval_sec: int = 10  # Re-optimize phases every 10s (tuned on training seeds 1-5)
     base_green_sec: int = 15      # Baseline green time
     k_queue: float = 0.5          # Extension coefficient per queued vehicle
     min_green_sec: int = 10       # Minimum green duration

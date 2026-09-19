@@ -3,11 +3,14 @@
 Provides an abstract hardware abstraction layer (HAL) for urban traffic controllers:
 - SignalControllerInterface: ABC for physical or simulated signal heads
 - SoftwareConflictMonitor: Safety layer preventing conflicting greens, enforcing
-  minimum green, and inserting yellow/all-red clearance intervals
+  minimum green, and defining yellow/all-red clearance intervals
 - HardwareWatchdog: Fail-safe watchdog timer that automatically falls back to
   fixed-timing if the adaptive optimizer stalls or crashes.
 
 NOTE: This is an architectural abstraction layer for future field deployment.
+The clearance interval logic (yellow/all-red clearance) is a hardware-layer safety
+concept designed for physical controller field interfacing; it is NOT exercised
+by the discrete-tick simulation engine (which operates strictly on binary green/red phases).
 No physical signal hardware is currently integrated.
 """
 

@@ -98,6 +98,7 @@ class MetricsEngine:
                 "Controller": name,
                 "Avg Wait (s)": metrics["avg_wait_sec"],
                 "Avg Ped Wait (s)": metrics.get("avg_pedestrian_wait_sec", 0.0),
+                "Cars Finished": metrics.get("total_vehicles_completed", 0),
                 "Throughput (cars/min)": metrics["throughput_cars_per_min"],
                 "Avg Queue (cars)": metrics["avg_queue_cars"],
                 "Est. Fuel (L)*": metrics["estimated_fuel_liters"],

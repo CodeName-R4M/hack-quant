@@ -52,3 +52,31 @@ def test_hybrid_controller_qaoa_execution_in_sim():
     assert last_opt["solver"] == "qaoa"
     assert "approximation_ratio" in last_opt
     assert "probabilities" in last_opt
+
+
+def test_reopt_interval_governs_phase_switching():
+    """Verify that reopt_interval_sec controls simulation re-optimization frequency.
+    
+    Verifies that while classical clamp() computes theoretical green extension durations,
+    actual phase updates in the simulation loop occur at every reopt_interval_sec.
+    """
+    network = RoadNetwork()
+    sim = TrafficSimulator(network=network, seed=42)
+    controller = HybridController(network, solver_mode="brute_force")
+
+    # Reopt interval is 10s
+    reopt_interval = controller.config.hybrid.reopt_interval_sec
+    assert reopt_interval == 10
+
+    # Step through simulation and record optimization ticks
+    opt_ticks = []
+    for tick in range(35):
+        phases = controller.get_phases(tick, sim)
+        sim.step(phases)
+        if controller.optimization_history and controller.optimization_history[-1]["tick"] == tick:
+            if not opt_ticks or opt_ticks[-1] != tick:
+                opt_ticks.append(tick)
+
+    # Optimization must trigger at tick 0, 10, 20, 30
+    assert opt_ticks == [0, 10, 20, 30]
+

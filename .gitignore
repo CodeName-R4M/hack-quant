@@ -17,3 +17,7 @@ __pycache__/
 # IDE
 .vscode/
 .idea/
+
+# Benchmark Checkpoints & Logs
+results/checkpoints/
+*.log

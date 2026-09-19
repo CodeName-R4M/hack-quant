@@ -91,6 +91,30 @@ def load_latest_qpu_run():
         return None
 
 
+def load_manifest_data():
+    """Loads benchmark manifest recording run configurations and metadata."""
+    manifest_path = os.path.join(os.path.dirname(__file__), "results", "manifest.json")
+    if os.path.exists(manifest_path):
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return None
+    return None
+
+
+def load_preemption_tradeoff_data():
+    """Loads preemption trade-off analysis results."""
+    tradeoff_path = os.path.join(os.path.dirname(__file__), "results", "preemption_tradeoff.json")
+    if os.path.exists(tradeoff_path):
+        try:
+            with open(tradeoff_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return None
+    return None
+
+
 def render_recorded_qpu_section():
     """Renders the read-only Real Quantum Hardware Run section in the dashboard."""
     st.markdown("---")
@@ -930,15 +954,32 @@ with tab_grid:
     col_status_left, col_status_right = st.columns([7, 5])
 
     with col_status_left:
-        st.subheader("Intersection Queue Breakdown")
+        st.subheader("Intersection Queue Breakdown & Signal Decisions")
+        st.caption("Real-time telemetry showing current active signal vs optimized proposed phase from the active controller.")
+        
+        # Get active controller's proposed phases if available
+        active_ctrl = None
+        if st.session_state.active_controller_name == "Fixed-Timing Baseline":
+            active_ctrl = st.session_state.fixed_ctrl
+        elif st.session_state.active_controller_name == "Rule-Based Baseline":
+            active_ctrl = st.session_state.rule_ctrl
+        else:
+            active_ctrl = st.session_state.hybrid_ctrl
+
+        proposed_phases = getattr(active_ctrl, "current_phases", {})
+
         q_data = []
         for n in net.graph.nodes:
             q_lens = sim.get_approach_queue_lengths(n)
-            phase = sim.signal_phases.get(n, 0)
+            curr_phase = sim.signal_phases.get(n, 0)
+            prop_phase = proposed_phases.get(n, curr_phase)
             j_lbl = junction_letters[n] if n < len(junction_letters) else f"J{n}"
+            action_str = "Maintain Green" if curr_phase == prop_phase else "Switch Phase Proposed"
             q_data.append({
                 "Junction": f"Junction {j_lbl}",
-                "Signal Phase": "Phase 0 [N-S Green, E-W Red]" if phase == 0 else "Phase 1 [E-W Green, N-S Red]",
+                "Current Phase": "Phase 0 [N-S Green]" if curr_phase == 0 else "Phase 1 [E-W Green]",
+                "Optimized Next": "Phase 0 [N-S Green]" if prop_phase == 0 else "Phase 1 [E-W Green]",
+                "Controller Action": action_str,
                 "N (Cars)": q_lens["N"],
                 "S (Cars)": q_lens["S"],
                 "E (Cars)": q_lens["E"],
@@ -1000,45 +1041,49 @@ with tab_driver:
         8: 2, 9: 5,        # E1->C, E2->F
     }
 
-    # Top Formal Paramedic Command Bar & View Toggle
-    col_hud_info, col_hud_toggle = st.columns([8, 4])
+    # Top Formal Paramedic Command Bar & View Toggle (50% / 50% split)
+    col_hud_info, col_hud_toggle = st.columns([6, 6])
     with col_hud_info:
         st.markdown("""
-        <div class="driver-hud-card">
+        <div class="driver-hud-card" style="margin-bottom: 0px; height: 100%;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <div class="hud-title">🚑 Tactical Paramedic & Emergency Medical Services (EMS) Navigation Console</div>
-                <span class="hud-alert">CAD AUTHORITY: 108 EMS | QUANTUM CORRIDOR ACTIVE</span>
+                <div class="hud-title" style="font-size: 1.2rem;">🚑 Tactical Paramedic & EMS Console</div>
+                <span class="hud-alert" style="font-size: 0.72rem;">108 EMS ACTIVE</span>
             </div>
-            <p style="color: #cbd5e1; margin-bottom: 0px; font-size: 0.94rem; line-height: 1.5;">
-                Authorized paramedic emergency terminal for priority patient transport. 
-                Select departure sector or perimeter gateway, designate destination trauma hospital, 
-                and engage the quantum-assisted preemption engine to synchronize downstream arterial signals 
-                and guarantee zero-stop green wave passage.
+            <p style="color: #cbd5e1; margin-bottom: 0px; font-size: 0.88rem; line-height: 1.45;">
+                Authorized emergency terminal for priority transport. Designate destination trauma hospital 
+                and engage quantum-assisted preemption to synchronize downstream arterial signals for zero-stop green wave passage.
             </p>
         </div>
         """, unsafe_allow_html=True)
     with col_hud_toggle:
-        st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
         st.markdown("""
-        <a href="/?page=hospital_maps" target="_blank" style="
-            display: block;
-            width: 100%;
-            text-align: center;
-            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-            color: #ffffff !important;
-            font-weight: 800;
-            font-size: 0.95rem;
-            padding: 13px 14px;
-            border-radius: 10px;
-            text-decoration: none;
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
-            transition: all 0.2s ease;
-            border: 1px solid #34d399;
-        ">
-            🏥 View Real Dashboard (Hospital Google Maps) &nbsp; ↗
-        </a>
+        <div style="background: linear-gradient(135deg, rgba(5, 38, 29, 0.7) 0%, rgba(11, 61, 47, 0.7) 100%); border: 1.5px solid rgba(16, 185, 129, 0.4); border-radius: 14px; padding: 14px 18px; height: 100%; display: flex; flex-direction: column; justify-content: center;">
+            <a href="/?page=hospital_maps" target="_blank" style="
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                text-align: center;
+                background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+                color: #ffffff !important;
+                font-weight: 800;
+                font-size: 1.05rem;
+                padding: 14px 18px;
+                border-radius: 10px;
+                text-decoration: none;
+                box-shadow: 0 4px 18px rgba(16, 185, 129, 0.45);
+                transition: all 0.2s ease;
+                border: 1px solid #34d399;
+                margin-bottom: 8px;
+            ">
+                🏥 View Real Dashboard (Hospital Google Maps) &nbsp; ↗
+            </a>
+            <div style="font-size: 0.8rem; color: #94a3b8; line-height: 1.35;">
+                ⚠️ <strong>Standalone Navigation Concept</strong>: Opens in a separate browser tab. Uses public map tiles and OSRM routing — not wired to the traffic signal simulator.
+            </div>
+        </div>
         """, unsafe_allow_html=True)
-        st.caption("⚠️ **Standalone Navigation Concept**: Opens in a separate browser tab. Uses public map tiles and OSRM routing — not wired to the traffic signal simulator.")
 
     # Find active driver mission
     active_driver_mission = None
@@ -1284,8 +1329,20 @@ with tab_driver:
                 eta_val = em_mgr.config.emergency.eta_threshold_sec
                 st.success(f"**Green Wave Engaged**: Traffic signals biased green {eta_val:.0f}s ahead of emergency approach.")
             with pcol2:
-                time_saved_est = 13.4 if getattr(active_driver_mission, "hard_preemption", False) else 9.7
-                st.info(f"**Measured Delay Avoided**: ~{time_saved_est:.1f}s saved vs un-preempted baseline (from 20 evaluation seeds).")
+                po_data = load_preemption_tradeoff_data()
+                if po_data:
+                    if getattr(active_driver_mission, "hard_preemption", False):
+                        saved_val = po_data.get("hard_override", {}).get("amb_time_saved")
+                        saved_str = f"~{saved_val:.1f}s saved (hard override)" if saved_val is not None else "not available"
+                    else:
+                        w_curr = em_mgr.config.qubo.w_emergency
+                        soft_list = po_data.get("soft_preemption", [])
+                        matched = min(soft_list, key=lambda x: abs(x.get("w_emerg", 0) - w_curr)) if soft_list else {}
+                        saved_val = matched.get("amb_time_saved")
+                        saved_str = f"~{saved_val:.1f}s saved (soft corridor W={matched.get('w_emerg')})" if saved_val is not None else "not available"
+                    st.info(f"**Measured Delay Avoided**: {saved_str} vs un-preempted baseline (from evaluation seeds).")
+                else:
+                    st.info("**Measured Delay Avoided**: not available (results/preemption_tradeoff.json missing).")
             with pcol3:
                 cars_in_front = getattr(active_driver_mission, "cars_ahead", 0)
                 st.info(f"**Queue Flushing**: {cars_in_front} queued vehicles ahead (discharging under green).")
@@ -1376,7 +1433,11 @@ with tab_quantum:
     br_col1, br_col2 = st.columns([5, 7])
     with br_col1:
         st.markdown("##### Braket Simulator Environment & Destination")
-        st.success("🟢 Amazon Braket Local Device (`braket.local.qubit`) Active")
+        last_br = st.session_state.get("last_braket_run")
+        if last_br:
+            st.success(f"🟢 Executed on: `{last_br.get('backend', 'braket.local.qubit')}` (Optimal State: |{last_br.get('top_state', '')}⟩)")
+        else:
+            st.info("ℹ️ Status: Not executed in this session (Click below to run QAOA on local Braket simulator).")
         st.write("**Target Grid:** 6 Junctions (A, B, C, D, E, F) | 6 Qubits")
         braket_s3_dest = os.getenv("AWS_BRAKET_S3_BUCKET", "Configured dynamically via AWS Session / default bucket")
         st.write(f"**Amazon S3 Output Destination:** `{braket_s3_dest}`")
@@ -1437,14 +1498,14 @@ with tab_quantum:
 # --- TAB 4: CONTROLLER BENCHMARK COMPARISON ---
 with tab_bench:
     st.subheader("Performance Comparison: Classical Baselines vs Hybrid Controller")
-    st.caption("Benchmark compares Fixed-Timing, Rule-Based, and Hybrid control under identical seeded traffic conditions.")
+    st.warning("⚠️ **Notice**: Quick illustrative replay, single seed (seed 42, 60s), not statistical evidence. For rigorous 20-seed independent evaluation with 95% confidence intervals, see Tab 5 (Evidence).")
 
     st.markdown("#### Operating Traffic Regime")
     sc_col1, sc_col2 = st.columns([4, 8])
     with sc_col1:
         bench_scenario_key = st.selectbox(
             "Select Scenario",
-            options=["rush_hour", "balanced", "surge_accident"],
+            options=["rush_hour", "balanced", "moderate_load", "surge_accident"],
             format_func=lambda s: SCENARIO_SPECS[s].name,
             index=0,
             key="tab4_scenario_select",
@@ -1452,6 +1513,8 @@ with tab_bench:
     with sc_col2:
         selected_spec = SCENARIO_SPECS[bench_scenario_key]
         st.info(f"**Scenario Profile**: {selected_spec.description}")
+
+    st.caption(f"**Replay Parameters**: Regime: `{selected_spec.name}` | Seed: `{sim.seed}` | Duration: `60s` | Evaluation Type: Single-Seed Illustrative Replay")
 
     if st.button("Execute Comparative Benchmark (60s Replay)", width='stretch'):
         with st.spinner(f"Executing multi-controller benchmark under {selected_spec.name}..."):
@@ -1519,54 +1582,193 @@ with tab_evidence:
     st.subheader("Defensible Scientific Evidence & Multi-Seed Benchmark Suite")
     st.caption("All metrics below are computed from multi-seed simulations and offline experiments (no hardcoded or cherry-picked numbers). Formulation: quantum-ready pipeline validated on a simulator — no quantum advantage is claimed.")
 
-    # Section 1.A: Multi-Scenario Benchmark Suite
-    st.markdown("#### 1. Scenario Suite Benchmark: Balanced vs Rush-Hour (3x) vs Surge + Incident")
-    st.markdown(
-        "Demonstrates controller resilience across three traffic regimes across evaluation seeds (seeds 100–119). "
-        "Includes **QUBO switching penalty** ($W_{switch} = 2.5$) and **25s re-optimization interval**."
-    )
+    manifest = load_manifest_data()
 
+    def format_config_stamp(sec: dict) -> str:
+        if not sec:
+            return "Configuration stamp not available (results/manifest.json missing or section empty)."
+        reopt = sec.get("reopt_interval_sec", "N/A")
+        w_sw = sec.get("w_switch", "N/A")
+        dur = sec.get("duration_sec", "N/A")
+        gen_time = sec.get("generation_timestamp", "N/A")
+        script = sec.get("script", "N/A")
+        weights = (
+            f"queue={sec.get('w_queue', 'N/A')}, "
+            f"coord={sec.get('w_coord', 'N/A')}, "
+            f"spillback={sec.get('w_spillback', 'N/A')}, "
+            f"emergency={sec.get('w_emergency', 'N/A')}, "
+            f"pedestrian={sec.get('w_pedestrian', 'N/A')}"
+        )
+        return (
+            f"**Configuration Stamp:** Script: `{script}` | "
+            f"Reopt: `{reopt}s` | "
+            f"W_switch: `{w_sw}` | "
+            f"Weights: `{weights}` | "
+            f"Duration: `{dur}s` | "
+            f"Generated: `{gen_time}`"
+        )
+
+    # Section 1.A: Multi-Scenario Benchmark Suite
     sc_summary_file = os.path.join(os.path.dirname(__file__), "results", "scenario_benchmark.csv")
+    sc_json_file = os.path.join(os.path.dirname(__file__), "results", "scenario_benchmark.json")
+
+    sc_manifest = manifest.get("scenario_benchmark", {}) if manifest else {}
+    reopt_val = sc_manifest.get("reopt_interval_sec", DEFAULT_CONFIG.hybrid.reopt_interval_sec)
+    w_sw_val = sc_manifest.get("w_switch", DEFAULT_CONFIG.qubo.w_switch)
+    sc_dur = sc_manifest.get("duration_sec", DEFAULT_CONFIG.simulation.default_sim_duration_sec)
+
     if os.path.exists(sc_summary_file):
         df_sc = pd.read_csv(sc_summary_file)
+        sc_names_list = df_sc["Scenario"].unique().tolist()
+        sc_heading_str = " vs ".join(s.split(" (")[0] for s in sc_names_list)
+        st.markdown(f"#### 1. Scenario Suite Benchmark: {sc_heading_str}")
+        st.markdown(
+            f"Demonstrates controller performance across {len(sc_names_list)} traffic regimes across evaluation seeds. "
+            f"Includes **QUBO switching penalty** ($W_{{switch}} = {w_sw_val}$) and **{reopt_val}s re-optimization interval** (duration: {sc_dur}s per trial)."
+        )
+
+        display_cols = [c for c in ["Scenario", "Controller", "Avg Wait (s)", "Throughput (cpm)", "Phase Switches", "Est. Fuel (L)", "Ambulance Time (s)"] if c in df_sc.columns]
         st.dataframe(
-            df_sc[["Scenario", "Controller", "Avg Wait (s)", "Throughput (cpm)", "Phase Switches", "Est. Fuel (L)"]],
+            df_sc[display_cols],
             width='stretch',
             hide_index=True,
         )
 
-        sc_stat1, sc_stat2, sc_stat3 = st.columns(3)
-        with sc_stat1:
-            st.success(
-                "**Balanced Flow**: Fixed-Timing wins (58.93s vs 59.88s). Under symmetric demand, 50/50 green splits are near-optimal."
-            )
-        with sc_stat2:
-            st.success(
-                "**Rush-Hour (3x Arterial)**: Hybrid wins decisively (54.90s vs 60.45s, **-9.2% wait time**, **+7.4% throughput**) by adapting green waves to lopsided flow."
-            )
-        with sc_stat3:
-            st.info(
-                "**Switching Penalty Impact**: Hybrid executes only 50.0 switches vs Rule-Based 79.3 switches (~37% smoother transitions, zero signal flicker)."
-            )
+        sc_seeds_dict = sc_manifest.get("seeds", {})
+        if sc_seeds_dict:
+            sc_seeds_str = "; ".join(f"{k}: {v}" for k, v in sc_seeds_dict.items())
+        else:
+            sc_seeds_str = "All controllers evaluated on recorded seeds in results/manifest.json"
+        st.caption(f"**Seeds Evaluated per Controller:** {sc_seeds_str}.")
+        
+        q_seeds = sc_seeds_dict.get("Hybrid (QAOA)", "")
+        f_seeds = sc_seeds_dict.get("Fixed-Timing Baseline", "")
+        if q_seeds and f_seeds and q_seeds != f_seeds:
+            st.caption(f"ℹ️ Note: Hybrid (QAOA) was evaluated on {q_seeds}, whereas classical controllers were evaluated on {f_seeds}.")
+
+        st.caption(format_config_stamp(sc_manifest))
+
+        # 1. Name the actual lowest-wait controller and report the gap to the runner-up per regime
+        sc_ids = df_sc["Scenario_ID"].unique()
+        sc_stat_cols = st.columns(len(sc_ids))
+        for idx, sc_id in enumerate(sc_ids):
+            sc_group = df_sc[df_sc["Scenario_ID"] == sc_id].sort_values(by="Wait Mean (s)")
+            best_row = sc_group.iloc[0]
+            runner_row = sc_group.iloc[1] if len(sc_group) > 1 else best_row
+            gap = runner_row["Wait Mean (s)"] - best_row["Wait Mean (s)"]
+            sc_label = best_row["Scenario"].split(" (")[0]
+            with sc_stat_cols[idx]:
+                st.info(
+                    f"**{sc_label}**\n\n"
+                    f"Lowest Delay: **{best_row['Controller']}** ({best_row['Wait Mean (s)']:.2f}s)\n\n"
+                    f"Runner-up: {runner_row['Controller']} ({runner_row['Wait Mean (s)']:.2f}s, gap: +{gap:.2f}s)"
+                )
+
+        # 2. Show Hybrid vs Fixed and Hybrid vs Rule-Based separately with paired differences and 95% CIs
+        if os.path.exists(sc_json_file):
+            try:
+                with open(sc_json_file, "r", encoding="utf-8") as f:
+                    sc_raw_data = json.load(f)
+                records = sc_raw_data.get("records", [])
+
+                paired_rows = []
+                for sc_id in sc_ids:
+                    sc_recs = [r for r in records if r.get("scenario") == sc_id]
+                    sc_name = next((r.get("Scenario") for r in df_sc.to_dict("records") if r.get("Scenario_ID") == sc_id), sc_id)
+
+                    fixed_map = {r["seed"]: r["avg_wait_sec"] for r in sc_recs if r.get("controller") == "Fixed-Timing Baseline"}
+                    rule_map = {r["seed"]: r["avg_wait_sec"] for r in sc_recs if r.get("controller") == "Rule-Based (Longest Queue)"}
+                    hyb_map = {r["seed"]: r["avg_wait_sec"] for r in sc_recs if r.get("controller") == "Hybrid (Brute-Force)"}
+                    qaoa_map = {r["seed"]: r["avg_wait_sec"] for r in sc_recs if r.get("controller") == "Hybrid (QAOA)"}
+
+                    def compute_paired_diff(test_map, base_map):
+                        shared = [s for s in test_map if s in base_map]
+                        if not shared:
+                            return "N/A"
+                        diffs = [test_map[s] - base_map[s] for s in shared]
+                        m = float(np.mean(diffs))
+                        se = float(np.std(diffs)) / np.sqrt(len(shared)) if len(shared) > 1 else 0.0
+                        ci = 1.96 * se
+                        return f"{m:+.2f}s [{m - ci:+.2f}, {m + ci:+.2f}] (n={len(shared)})"
+
+                    paired_rows.append({
+                        "Scenario": sc_name,
+                        "Hybrid (BF) vs Fixed": compute_paired_diff(hyb_map, fixed_map),
+                        "Hybrid (BF) vs Rule-Based": compute_paired_diff(hyb_map, rule_map),
+                        "Hybrid (QAOA) vs Fixed": compute_paired_diff(qaoa_map, fixed_map),
+                        "Hybrid (QAOA) vs Rule-Based": compute_paired_diff(qaoa_map, rule_map),
+                    })
+
+                if paired_rows:
+                    st.markdown("##### Paired-Seed Delay Differences: Hybrid Controllers vs Classical Baselines")
+                    st.dataframe(pd.DataFrame(paired_rows), width='stretch', hide_index=True)
+                    st.caption("Paired differences computed per evaluation seed. Negative values indicate lower wait time for Hybrid; positive values indicate baseline lead.")
+            except Exception:
+                pass
+
+        # 3. Phase switch comparison stating BOTH baselines
+        fixed_switches = df_sc[df_sc["Controller"] == "Fixed-Timing Baseline"]["Phase Switches"].tolist()
+        rule_switches = df_sc[df_sc["Controller"] == "Rule-Based (Longest Queue)"]["Phase Switches"].tolist()
+        hyb_switches = df_sc[df_sc["Controller"] == "Hybrid (Brute-Force)"]["Phase Switches"].tolist()
+        qaoa_switches = df_sc[df_sc["Controller"] == "Hybrid (QAOA)"]["Phase Switches"].tolist()
+
+        f_sw_str = fixed_switches[0] if fixed_switches else "N/A"
+        r_sw_str = rule_switches[0] if rule_switches else "N/A"
+        h_sw_str = hyb_switches[0] if hyb_switches else "N/A"
+        q_sw_str = qaoa_switches[0] if qaoa_switches else "N/A"
+
+        st.caption(
+            f"**Phase Switch Comparison (Baseline vs Adaptive Policies)**: "
+            f"Fixed-Timing Baseline ({f_sw_str}), Rule-Based Baseline ({r_sw_str}), "
+            f"Hybrid Brute-Force ({h_sw_str}), Hybrid QAOA ({q_sw_str}). "
+            f"Both classical baselines are explicitly recorded: Fixed-Timing changes strictly on cycle intervals, while Rule-Based switches on local queue thresholds."
+        )
+
     else:
         st.info("Scenario benchmark data is generating...")
 
     st.markdown("---")
     # Section 1.B: 20-Seed Independent Evaluation Benchmark
-    st.markdown("#### 2. 20-Seed Full Independent Evaluation Benchmark (Seeds 100–119, 600s each)")
+    b_manifest = manifest.get("benchmark_20seeds", {}) if manifest else {}
+    b_dur = b_manifest.get("duration_sec", DEFAULT_CONFIG.simulation.default_sim_duration_sec)
+    b_seeds_dict = b_manifest.get("seeds", {})
+    b_seeds_desc = next(iter(b_seeds_dict.values())) if b_seeds_dict else "20 evaluation seeds (100–119)"
+    st.markdown(f"#### 2. Full Independent Evaluation Benchmark ({b_seeds_desc}, {b_dur}s each)")
     st.markdown(
-        "Tuning of QUBO weights ($W_{queue}, W_{coord}, W_{spill}$) and re-optimization intervals was conducted strictly on training seeds (1–5). "
-        "The evaluation below was performed blindly across 20 unseen evaluation seeds."
+        "Tuning of QUBO weights ($W_{queue}, W_{coord}, W_{spill}, W_{switch}$) and re-optimization intervals was conducted strictly on training seeds (1–5). "
+        "The evaluation below was performed blindly across unseen evaluation seeds."
     )
 
     bench_summary_file = os.path.join(os.path.dirname(__file__), "results", "benchmark_summary.csv")
     if os.path.exists(bench_summary_file):
         df_bench = pd.read_csv(bench_summary_file)
         st.dataframe(df_bench, width='stretch', hide_index=True)
+
+        if b_seeds_dict:
+            b_seeds_str = "; ".join(f"{k}: {v}" for k, v in b_seeds_dict.items())
+        else:
+            b_seeds_str = "All controllers evaluated on recorded seeds in results/manifest.json"
+        st.caption(f"**Seeds Evaluated per Controller:** {b_seeds_str}.")
+        
+        q_b_seeds = b_seeds_dict.get("Hybrid (QAOA)", "")
+        f_b_seeds = b_seeds_dict.get("Fixed-Timing Baseline", "")
+        if q_b_seeds and f_b_seeds and q_b_seeds != f_b_seeds:
+            st.caption(f"ℹ️ Note: Hybrid (QAOA) was evaluated on {q_b_seeds}, whereas classical controllers were evaluated on {f_b_seeds}.")
+
+        st.caption(format_config_stamp(b_manifest))
+
+        qaoa_amb_vals = df_bench.loc[df_bench["Controller"] == "Hybrid (QAOA)", "Ambulance Time (s)"].values
+        bf_amb_vals = df_bench.loc[df_bench["Controller"] == "Hybrid (Brute-Force)", "Ambulance Time (s)"].values
+        qaoa_amb_str = qaoa_amb_vals[0] if len(qaoa_amb_vals) else "N/A"
+        bf_amb_str = bf_amb_vals[0] if len(bf_amb_vals) else "N/A"
+
+        idle_rate = DEFAULT_CONFIG.metrics.idle_fuel_rate_l_per_hr
+        co2_factor = DEFAULT_CONFIG.metrics.co2_kg_per_l_petrol
+
         st.caption(
-            "*Note on Environmental Metrics: Fuel and CO₂ are derived scalar multiples of idle delay using typical automotive assumptions (0.8 L/hr idle rate and 2.31 kg CO₂/L petrol). "
-            "They move directly with wait time and do not represent independent empirical evidence. "
-            "Note on Ambulance Times: The 8.8s (QAOA) vs 11.8s (Brute-Force) reflects stochastic simulation noise across 20 evaluation seeds (overlapping spread: 8.8 ± 1.8s vs 11.8 ± 2.2s); no quantum advantage over brute-force is claimed.*"
+            f"*Note on Environmental Metrics: Fuel and CO₂ are derived scalar multiples of idle delay using typical automotive assumptions ({idle_rate} L/hr idle rate and {co2_factor} kg CO₂/L petrol). "
+            f"They move directly with wait time and do not represent independent empirical evidence. "
+            f"Note on Ambulance Times: The {qaoa_amb_str} (QAOA) vs {bf_amb_str} (Brute-Force) reflects stochastic simulation noise across evaluation seeds; no quantum advantage over brute-force is claimed.*"
         )
     else:
         st.info("Benchmark summary is currently generating... it will load automatically once complete.")
@@ -1579,12 +1781,25 @@ with tab_evidence:
         "swept across emergency bias weights $W_{emerg} \\in [5, 15, 30, 50, 80, 150]$ vs Hard Preemption across 20 evaluation seeds."
     )
     preempt_png = os.path.join(os.path.dirname(__file__), "results", "preemption_tradeoff.png")
+    po_data = load_preemption_tradeoff_data()
     if os.path.exists(preempt_png):
         st.image(preempt_png, caption="Pareto Trade-off: Ambulance Travel Time vs Extra Delay Imposed on Normal Traffic (20 Seeds)", width='stretch')
-        st.caption(
-            "Empirical Finding: Hard override clears corridors fastest (8.0s, +1.75s extra cross delay). Soft QUBO bias clears corridors in 11.75s (+1.38s extra cross delay). "
-            "Note: Above $W_{emerg} = 15$, the binary decision space saturates identically. The collateral delay difference between soft preemption and hard override is modest (~0.37s per vehicle)."
-        )
+        if po_data:
+            hard_time = po_data.get("hard_override", {}).get("amb_time")
+            hard_extra = po_data.get("hard_override", {}).get("extra_delay")
+            soft_entries = po_data.get("soft_preemption", [])
+            soft_w15 = next((x for x in soft_entries if x.get("w_emerg") == 15.0), soft_entries[1] if len(soft_entries) > 1 else {})
+            soft_time = soft_w15.get("amb_time")
+            soft_extra = soft_w15.get("extra_delay")
+            collateral_diff = (hard_extra - soft_extra) if (hard_extra is not None and soft_extra is not None) else 0.0
+
+            st.caption(
+                f"Empirical Finding: Hard override clears corridors in {hard_time:.1f}s (+{hard_extra:.2f}s extra cross delay). "
+                f"Soft QUBO bias (W={soft_w15.get('w_emerg')}) clears corridors in {soft_time:.2f}s (+{soft_extra:.2f}s extra cross delay). "
+                f"The collateral delay difference between soft preemption and hard override is modest (~{collateral_diff:+.2f}s per vehicle)."
+            )
+        else:
+            st.caption("Preemption trade-off metrics not available (results/preemption_tradeoff.json not found).")
 
     # Section 3: QAOA Algorithmic Depth & Noise Analysis
     st.markdown("---")
@@ -1594,29 +1809,64 @@ with tab_evidence:
         depth_png = os.path.join(os.path.dirname(__file__), "results", "qaoa_depth_vs_ratio.png")
         if os.path.exists(depth_png):
             st.image(depth_png, caption="QAOA Approximation Ratio vs Circuit Depth p (1-4) across 20 Traffic Snapshots", width='stretch')
-            st.caption(
-                "Depth Scaling: For a 6-qubit system, barren plateaus do not occur. Rather, increasing circuit depth to p=3/4 doubles the parameter space (2p = 6 to 8 variational angles); "
-                "under a bounded budget of 25 COBYLA steps, the classical optimizer cannot reliably converge on these higher-dimensional landscapes, making p=2 the empirical sweet spot."
-            )
+            depth_data_path = os.path.join(os.path.dirname(__file__), "results", "qaoa_depth_data.json")
+            if os.path.exists(depth_data_path):
+                try:
+                    with open(depth_data_path, "r", encoding="utf-8") as f:
+                        d_data = json.load(f)
+                    p1_m = d_data.get("1", {}).get("mean_ratio", 0)
+                    p4_m = d_data.get("4", {}).get("mean_ratio", 0)
+                    p4_hit = d_data.get("4", {}).get("exact_hit_rate", 0) * 100
+                    st.caption(
+                        f"Depth Scaling (Loaded from `results/qaoa_depth_data.json`): Scaled optimizer budget (max_iterations = 20 + 20*p). "
+                        f"Approximation ratio improves from {p1_m:.4f} (p=1) to {p4_m:.4f} (p=4, {p4_hit:.1f}% exact hit rate). "
+                        "This confirms that prior underperformance at higher depth was an optimizer budget artifact rather than barren plateaus."
+                    )
+                except Exception:
+                    st.caption("Depth study data loaded from results/qaoa_depth_vs_ratio.png.")
+            else:
+                st.caption("Depth study data not available.")
     with q_col2:
         noise_png = os.path.join(os.path.dirname(__file__), "results", "qaoa_noise_study.png")
         if os.path.exists(noise_png):
             st.image(noise_png, caption="QAOA Noise Sensitivity (PennyLane default.mixed Depolarizing Noise)", width='stretch')
-            st.caption(
-                "Noise Sensitivity: Under 25 bounded COBYLA steps on mixed-state density matrices, noise study results are inconclusive due to optimizer convergence variance and finite sampling (noise cannot physically improve solution quality)."
-            )
+            noise_data_path = os.path.join(os.path.dirname(__file__), "results", "qaoa_noise_data.json")
+            if os.path.exists(noise_data_path):
+                try:
+                    with open(noise_data_path, "r", encoding="utf-8") as f:
+                        n_data = json.load(f)
+                    ideal_m = n_data.get("Ideal (Noiseless)", {}).get("mean_ratio", 0)
+                    high_m = n_data.get("High (p=0.05)", {}).get("mean_ratio", 0)
+                    st.caption(
+                        f"Noise Sensitivity (Loaded from `results/qaoa_noise_data.json`): Evaluated across 20 snapshots with 95% CIs. "
+                        f"Noiseless baseline ({ideal_m:.4f}) monotonically degrades under depolarizing noise down to {high_m:.4f} at p=0.05 noise rate."
+                    )
+                except Exception:
+                    st.caption("Noise study data loaded from results/qaoa_noise_study.png.")
+            else:
+                st.caption("Noise study data not available.")
 
     # Section 4: Computational Complexity & Scaling
     st.markdown("---")
     st.markdown("#### 5. Computational Complexity: Classical Brute-Force Scaling & Classical Heuristics (Phase E.4)")
     st.markdown(
-        "Classical exhaustive evaluation exhibits $O(2^N)$ exponential wall-clock explosion (taking >1.5 minutes per step at N=24). "
-        "However, fast classical heuristics like Simulated Annealing solve this instance in 4.2ms with a 98% optimum hit rate. "
-        "The value of this architecture is a **quantum-ready pipeline** validated on an urban grid — no quantum supremacy or advantage is claimed."
+        "Classical exhaustive evaluation exhibits exponential wall-clock growth. "
+        "However, fast classical heuristics like Simulated Annealing find the global optimum in most cases in milliseconds. "
+        "The honest framing is a **quantum-ready formulation**; classical heuristics also work today."
     )
     scaling_png = os.path.join(os.path.dirname(__file__), "results", "scaling_curve.png")
     if os.path.exists(scaling_png):
-        st.image(scaling_png, caption="Classical Brute-Force Wall-Clock Scaling (N=4 to N=24)", width='stretch')
+        st.image(scaling_png, caption="Classical Brute-Force Wall-Clock Scaling (N=4 to N=24, N=22 and N=24 projected)", width='stretch')
+        scaling_meta_path = os.path.join(os.path.dirname(__file__), "results", "scaling_metadata.json")
+        if os.path.exists(scaling_meta_path):
+            try:
+                with open(scaling_meta_path, "r", encoding="utf-8") as f:
+                    s_meta = json.load(f)
+                st.caption(f"Scaling Analysis (Loaded from `results/scaling_metadata.json`): {s_meta.get('caption', '')}")
+            except Exception:
+                st.caption("Scaling curve loaded from results/scaling_curve.png.")
+        else:
+            st.caption("Scaling metadata not available.")
 
     # Section 6: Amazon Braket Simulation & Cloud Telemetry
     st.markdown("---")

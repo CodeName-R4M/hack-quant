@@ -51,8 +51,14 @@ SCENARIO_SPECS: Dict[str, ScenarioSpec] = {
     "balanced": ScenarioSpec(
         id="balanced",
         name="Balanced Flow (Uniform Demand)",
-        description="Symmetric baseline traffic: 0.35 cars/sec across all North, South, East, West gates.",
+        description="Symmetric baseline traffic: 0.35 cars/sec across all North, South, East, West gates (oversaturated, queues grow over time).",
         boundary_rates=None,  # Uses default base_arrival_rate (0.35)
+    ),
+    "moderate_load": ScenarioSpec(
+        id="moderate_load",
+        name="Moderate Load (75-80% Saturation)",
+        description="Uncongested baseline: 0.18 cars/sec per gate (~108 cars/min offered load, ~75-80% of measured network capacity).",
+        boundary_rates={"W": 0.18, "E": 0.18, "N": 0.18, "S": 0.18},
     ),
     "rush_hour": ScenarioSpec(
         id="rush_hour",

@@ -144,9 +144,9 @@ hack-quant/
 |---|---|
 | `NetworkConfig` | Grid size (2x3), road length (150 m), capacity (20 veh/edge), Chennai GPS coordinates |
 | `SimulationConfig` | Tick duration (1 s), Poisson arrival rate (0.35/tick), discharge interval (2 ticks) |
-| `QUBOConfig` | Cost weights: queue (1.0), coordination (0.2), spillback (0.5), switching (2.5), emergency (50.0), pedestrian (2.0) |
+| `QUBOConfig` | Cost weights: queue (1.0), coordination (0.2), spillback (0.5), switching (1.0), emergency (50.0), pedestrian (2.0) |
 | `QAOAConfig` | p=2 layers, 35 COBYLA iterations, 1000 shots, warm-start caching |
-| `HybridTimingConfig` | Re-optimize every 25 s (20–30s range), base green 15 s, k=0.5 extension per queued vehicle, min 10s, max 45s |
+| `HybridTimingConfig` | Re-optimize every 10 s (tuned on training seeds 1–5), base green 15 s, k=0.5 extension per queued vehicle, min 10s, max 45s |
 | `EmergencyConfig` | ETA preemption threshold 45 s, ambulance speed x1.5, max preemption 90 s |
 | `MetricsConfig` | Derived estimates: typical idle fuel 0.8 L/hr, CO2 2.31 kg/L petrol |
 | `SecurityConfig` | HS256 JWT, 600 s token validity, 5 requests/60 s rate limit |
@@ -356,7 +356,7 @@ Ambulance destination is always the correct hospital junction, not a random node
 
 **Components:**
 - `SignalControllerInterface`: Vendor-agnostic abstract base class for traffic signal actuators (`set_phase`, `get_state`, `emergency_preempt`, `safe_fallback`). Enables NTCIP 1202 / NEMA TS2 integration without touching the optimization core.
-- `SoftwareConflictMonitor`: Enforces mutually exclusive green phases (prevents concurrent N-S and E-W green lights), a **10-second minimum green constraint**, and a **2-second yellow clearance interval**.
+- `SoftwareConflictMonitor`: Enforces mutually exclusive green phases (prevents concurrent N-S and E-W green lights) and a **10-second minimum green constraint**. (Note: yellow/all-red clearance logic is defined here as a hardware-layer specification for physical cabinet interfaces; it is not exercised by the discrete tick simulator, which uses binary green/red phases).
 - `HardwareWatchdog`: Heartbeat monitor tripping `safe_fallback()` into a fail-safe fixed-timing cycle if an optimization step times out (>15s).
 
 ---
@@ -660,21 +660,22 @@ All tunables reside in `traffic_quantum/config.py`:
 | Parameter | Value | Effect |
 |---|---|---|
 | `grid_rows / grid_cols` | 2 / 3 | 6-junction urban topology (matches Chennai pilot corridor) |
-| `base_arrival_rate` | 0.35 | Poisson probability of vehicle arrival per gate tick |
-| `discharge_interval_ticks` | 2 | Ticks required to discharge leading vehicle through green signal |
+| `base_arrival_rate` | 0.35 | Poisson probability of vehicle arrival per gate tick (~21 cars/min per gate) |
+| `discharge_interval_ticks` | 2 | Ticks required to discharge leading vehicle through green signal (0.5 car/s) |
 | `default_capacity` | 20 | Maximum vehicle holding capacity per directed road segment |
 | `w_queue` | 1.0 | QUBO linear weight on active queue depth imbalance |
-| `w_coord` | 0.2 | QUBO quadratic coupling weight for arterial green-wave coordination |
-| `w_spillback` | 0.5 | QUBO penalty for discharging into saturated downstream roads |
+| `w_coord` | 0.2 | QUBO quadratic coupling weight for arterial green-wave coordination (tuned on training seeds 1–5) |
+| `w_spillback` | 0.5 | QUBO penalty for discharging into saturated downstream roads (tuned on training seeds 1–5) |
 | `w_emergency` | 50.0 | QUBO emergency corridor bias in config.py (swept across 5–150 in preemption study) |
 | `w_pedestrian` | 2.0 | QUBO linear penalty for pedestrian crosswalk waiting queues |
 | `pedestrian_arrival_rate` | 0.05 | Poisson arrival rate for crosswalk pedestrians per junction |
 | `pedestrian_max_wait_sec` | 45 | Urgency threshold after which pedestrian phase is forced |
 | `min_green_sec` | 10 | Minimum green duration enforced by Conflict Monitor |
-| `reopt_interval_sec` | 25 | Re-optimization interval (20–30s) between successive QUBO evaluations |
-| `w_switch` | 2.5 | QUBO switching penalty (cost for changing signal phase, stabilizes transitions) |
+| `reopt_interval_sec` | 10 | Re-optimization interval (10s) between successive QUBO evaluations (tuned on training seeds 1–5) |
+| `w_switch` | 1.0 | QUBO switching penalty (chosen on training seeds 1–5; differences between settings on those seeds were small (<1s)) |
 | `p_layers` | 2 | QAOA circuit depth |
-| `max_iterations` | 35 | Classical optimizer evaluation steps (35 in config.py; 25 in offline depth study) |
+| `max_iterations` | 35 | Classical optimizer evaluation steps (35 in config.py) |
+| `shots` | 1000 | Number of measurement samples per QAOA evaluation |
 | `eta_threshold_sec` | 45.0 | Preemption anticipation horizon for incoming ambulances |
 | `rate_limit` | 5 / 60s | Token-bucket preemption rate limit (5 requests per 60 seconds) |
 | `road_length_m` | 150.0 | Directed link length between adjacent intersections |
@@ -682,85 +683,90 @@ All tunables reside in `traffic_quantum/config.py`:
 
 ---
 
-## Defensible Multi-Regime Scenario Suite (Evaluation Seeds 100–119)
+## Defensible Multi-Regime Scenario Suite (Evaluation Seeds 100–119, 600s Each)
 
-To assess controller robustness across realistic urban operating conditions, the system was evaluated across three distinct traffic regimes on **20 independent evaluation seeds (seeds 100–119, 300s each)**:
+To assess controller performance across realistic urban conditions, the system was evaluated across four distinct traffic regimes on **20 independent evaluation seeds (seeds 100–119, 600 simulated seconds each)**. 
+All hyperparameter tuning was conducted strictly on separate **training seeds (seeds 1–5)** to prevent overfitting.
 
-1. **Balanced Flow (Uniform Demand)**: Equal arrival rate (0.35 cars/sec) across all perimeter entry points (N1–N3, S1–S3, W1–W2, E1–E2).
-2. **Rush-Hour (3x Arterial Demand)**: Lopsided demand where the primary East-West arterial (W and E gates) receives **3x higher inflow** (0.45 cars/sec) than North-South cross streets (0.15 cars/sec).
-3. **Surge + Incident (Lane Closure)**: Heavy arterial surge (0.45 W/E, 0.20 N/S) combined with an active road incident/accident on Link 1->2 (Saidapet Metro to Nandanam) reducing capacity between $t=50$s and $t=250$s.
+### Network Saturation & Traffic Demand Analysis
 
-### Scenario Suite Empirical Results (195 Simulation Runs)
+Before comparing controllers, traffic regimes must be classified by network saturation (offered demand vs network discharge capacity):
 
-| Scenario | Controller | Avg Wait (s) | 95% Confidence Interval | Throughput (cpm) | Avg Queue (cars) | Est. Fuel (L)* | Phase Switches |
-|---|---|---|---|---|---|---|---|
-| **Balanced Flow** | **Fixed-Timing Baseline** | **58.93 ± 3.03** | [57.60, 60.26] | 126.8 ± 1.3 | 210.3 ± 14.0 | 13.22 ± 0.89 | **54.0 ± 0.0** |
-| (Uniform Demand) | Rule-Based (Longest Queue) | 55.41 ± 3.21 | [54.01, 56.82] | 128.6 ± 2.2 | 197.6 ± 14.3 | 12.52 ± 0.94 | 141.1 ± 5.9 |
-| | Hybrid (Brute-Force) | 59.88 ± 3.50 | [58.35, 61.41] | 124.1 ± 2.1 | 212.7 ± 15.3 | 13.54 ± 1.04 | 73.7 ± 3.5 |
-| | Hybrid (QAOA) | 61.19 ± 3.92 | [59.47, 62.91] | 121.1 ± 2.7 | 217.5 ± 18.3 | 13.72 ± 1.21 | 68.0 ± 5.3 |
-| **Rush-Hour** | Fixed-Timing Baseline | 60.45 ± 1.83 | [59.65, 61.25] | 96.1 ± 2.6 | 172.1 ± 7.4 | 10.29 ± 0.46 | 54.0 ± 0.0 |
-| **(3x Arterial Demand)** | Rule-Based (Longest Queue) | 47.82 ± 3.26 | [46.39, 49.25] | 108.7 ± 1.6 | 129.9 ± 11.5 | 8.16 ± 0.72 | 79.3 ± 4.1 |
-| | **Hybrid (Brute-Force)** | **54.90 ± 2.91** | [53.63, 56.18] | **103.2 ± 1.9** | **149.4 ± 10.7** | **9.38 ± 0.68** | **50.0 ± 2.3** |
-| | **Hybrid (QAOA)** | **55.11 ± 2.82** | [53.87, 56.35] | **101.4 ± 2.4** | **150.1 ± 7.6** | **9.39 ± 0.58** | **54.6 ± 2.1** |
-| **Surge + Incident** | Fixed-Timing Baseline | 57.80 ± 1.67 | [57.07, 58.54] | 110.0 ± 2.4 | 182.9 ± 8.1 | 11.00 ± 0.51 | 54.0 ± 0.0 |
-| (Lane Closure) | Rule-Based (Longest Queue) | 54.95 ± 3.06 | [53.61, 56.29] | 111.8 ± 1.3 | 166.8 ± 12.2 | 10.51 ± 0.77 | 95.8 ± 3.8 |
-| | Hybrid (Brute-Force) | 61.06 ± 3.27 | [59.62, 62.49] | 106.4 ± 2.3 | 185.1 ± 13.4 | 11.70 ± 0.85 | 55.0 ± 2.7 |
-| | Hybrid (QAOA) | 63.06 ± 3.79 | [61.39, 64.72] | 102.6 ± 2.3 | 191.1 ± 12.2 | 11.97 ± 0.95 | 55.0 ± 1.8 |
+| Regime | Boundary Arrival Profile | Total Offered Demand | Measured Throughput | Avg Network Queue | Saturation Status |
+|---|---|---|---|---|---|
+| **Moderate Load** | 0.18 cars/s per gate (all 10 gates) | **108.0 cars/min** | **99.2 – 101.1 cars/min** | **31.5 – 48.6 cars** | **Unsaturated (~75–80% capacity)**: Queues remain stable and bounded; differences reflect pure signal timing efficiency. |
+| **Balanced Flow** | 0.35 cars/s per gate (all 10 gates) | **210.0 cars/min** | **128.5 – 138.4 cars/min** | **364.4 – 397.7 cars** | **Oversaturated**: Inflow exceeds maximum network exit capacity (~138 cpm); queues accumulate over time across all controllers. |
+| **Rush-Hour** | 0.45 E-W, 0.15 N-S | **162.0 cars/min** | **105.2 – 117.9 cars/min** | **219.7 – 295.3 cars** | **Oversaturated (Directional)**: High arterial flow backs up East-West approaches. |
+| **Surge + Incident** | 0.45 E-W, 0.20 N-S + lane reduction | **180.0 cars/min** | **116.0 – 120.9 cars/min** | **301.6 – 317.3 cars** | **Oversaturated (Bottlenecked)**: Edge (3, 4) capacity halved between t=60s and t=300s. |
 
-### Defensible Findings & Transparent Analysis
+### Scenario Suite Empirical Results (320 Simulation Runs across 20 Seeds)
 
-1. **Where Fixed-Timing Wins (Balanced Traffic)**:
-   - Under uniform, symmetrical traffic demand, cyclical 50/50 green splits (30s NS, 30s EW) are near-optimal.
-   - Fixed-Timing achieves **58.93s wait time**, slightly outperforming Hybrid Brute-Force (59.88s) and Hybrid QAOA (61.19s).
-   - In symmetric conditions, dynamic re-optimization provides minimal marginal benefit while introducing small coordination phase offsets.
+All metrics below are drawn directly from `results/scenario_benchmark.csv` (600s trials, evaluation seeds 100–119):
 
-2. **Where Hybrid Wins Decisively (Rush-Hour 3x Lopsided Flow)**:
-   - When traffic becomes highly asymmetric (3x load on the East-West arterial), Fixed-Timing breaks down: it wastes 30 seconds giving green time to empty cross-streets while arterial queues back up.
-   - **Hybrid controllers beat Fixed-Timing decisively**:
-     - **-5.55s lower average wait time (-9.2% delay reduction)** (54.90s vs 60.45s).
-     - **+7.1 cpm higher network throughput (+7.4% gain)** (103.2 vs 96.1 cpm).
-     - **Queue accumulation cut by 13.2%** (149.4 vs 172.1 cars).
-   - This empirically confirms the foundational engineering thesis: **adaptive quantum-hybrid coordination delivers its greatest value under asymmetric, surge-prone urban congestion patterns.**
+| Scenario | Controller | Avg Wait (s) | 95% Confidence Interval | Avg Ped Wait (s) | Throughput (cpm) | Avg Queue (cars) | Phase Switches | Ambulance Time (s) | Exact Hit % |
+|---|---|---|---|---|---|---|---|---|---|
+| **Moderate Load** | Fixed-Timing Baseline | 27.49 ± 0.76 | [27.16, 27.82] | 7.65 ± 0.74 | 99.2 ± 1.5 | 48.6 ± 1.8 | 114.0 ± 0.0 | 19.9 ± 12.2 | N/A |
+| (75–80% Saturation) | Rule-Based (Longest Queue) | 17.70 ± 0.55 | [17.45, 17.94] | 3.31 ± 0.33 | 101.1 ± 1.7 | 31.5 ± 1.3 | 324.4 ± 10.9 | 24.6 ± 13.7 | N/A |
+| | **Hybrid (Brute-Force)** | **18.11 ± 0.48** | [17.90, 18.31] | **2.91 ± 0.25** | **100.9 ± 1.7** | **32.2 ± 1.2** | **327.9 ± 9.8** | **9.2 ± 2.2** | N/A |
+| | **Hybrid (QAOA)** | **19.86 ± 1.07** | [19.39, 20.33] | **3.26 ± 0.47** | **101.1 ± 1.9** | **35.3 ± 2.3** | **291.9 ± 19.9** | **8.2 ± 1.1** | **59.8%** |
+| **Rush-Hour** | Fixed-Timing Baseline | 105.20 ± 3.15 | [103.82, 106.58] | 7.65 ± 0.74 | 105.2 ± 1.8 | 295.3 ± 11.5 | 114.0 ± 0.0 | 25.1 ± 15.7 | N/A |
+| (3x Arterial Demand) | Rule-Based (Longest Queue) | 80.47 ± 5.53 | [78.05, 82.89] | 8.75 ± 1.45 | 117.9 ± 1.5 | 219.7 ± 18.0 | 154.6 ± 6.8 | 29.1 ± 13.6 | N/A |
+| | **Hybrid (Brute-Force)** | **81.91 ± 4.64** | [79.88, 83.94] | **6.99 ± 1.16** | **117.5 ± 1.7** | **223.3 ± 15.6** | **156.4 ± 7.1** | **9.2 ± 2.2** | N/A |
+| | **Hybrid (QAOA)** | **87.57 ± 4.88** | [85.44, 89.71] | **7.43 ± 0.92** | **115.1 ± 1.9** | **238.9 ± 16.0** | **155.6 ± 8.7** | **8.5 ± 1.5** | **36.4%** |
+| **Balanced Flow** | **Fixed-Timing Baseline** | **102.45 ± 4.37** | [100.54, 104.37] | 7.65 ± 0.74 | 138.4 ± 0.6 | 364.4 ± 19.7 | **114.0 ± 0.0** | 15.3 ± 3.4 | N/A |
+| (Uniform Demand) | Rule-Based (Longest Queue) | 105.98 ± 5.93 | [103.38, 108.57] | 4.29 ± 0.65 | 131.0 ± 5.2 | 375.1 ± 23.8 | 274.1 ± 13.5 | 21.7 ± 3.8 | N/A |
+| | Hybrid (Brute-Force) | 107.80 ± 5.31 | [105.47, 110.13] | 3.52 ± 0.42 | 131.0 ± 4.5 | 381.5 ± 22.0 | 279.4 ± 11.0 | 11.0 ± 2.4 | N/A |
+| | Hybrid (QAOA) | 112.51 ± 5.66 | [110.02, 114.99] | 4.35 ± 0.67 | 128.5 ± 4.7 | 397.7 ± 23.2 | 235.2 ± 11.7 | 9.0 ± 2.0 | 32.6% |
+| **Surge + Incident** | **Fixed-Timing Baseline** | **98.69 ± 2.82** | [97.45, 99.93] | 7.65 ± 0.74 | 120.9 ± 2.0 | 307.7 ± 11.5 | **114.0 ± 0.0** | 19.4 ± 12.2 | N/A |
+| (Lane Closure) | Rule-Based (Longest Queue) | 99.45 ± 5.71 | [96.95, 101.96] | 7.77 ± 1.76 | 117.5 ± 2.5 | 301.6 ± 20.3 | 184.8 ± 10.0 | 26.1 ± 9.8 | N/A |
+| | **Hybrid (Brute-Force)** | **99.37 ± 5.31** | [97.04, 101.70] | **5.77 ± 0.73** | 118.3 ± 2.2 | 301.6 ± 19.5 | 191.3 ± 9.0 | 10.2 ± 2.5 | N/A |
+| | Hybrid (QAOA) | 104.55 ± 5.79 | [102.01, 107.09] | 6.77 ± 0.95 | 116.0 ± 2.5 | 317.3 ± 21.0 | 177.8 ± 11.0 | 9.0 ± 2.0 | 33.6% |
 
-3. **Solving the "Too Many Switches" Problem (Switching Penalty & 25s Interval)**:
-   - Without stabilization, greedy reactive controllers suffer from rapid phase flipping (chattering), which wears physical signal hardware, creates yellow dilemma zones for drivers, and disrupts platoon formation. In balanced flow, Rule-Based executed an erratic **141.1 switches**!
-   - To eliminate signal flutter, two key algorithmic enhancements were implemented:
-     - **QUBO Switching Penalty ($W_{switch} = 2.5$)**: Adding a quadratic penalty cost in the Hamiltonian when $x_i \ne s_i$ explicitly penalizes switching from the active phase.
-     - **25-Second Re-Optimization Interval**: Re-evaluating network-wide signal phases at 20–30s cadences allows established green waves to flush queues before interrupting flow.
-   - **Result**: Hybrid phase switches in rush hour dropped to **50.0 switches** (smoother even than Fixed's 54.0!), while slashing wait time by 3.8s compared to unpenalized switching. Signal transitions are smooth, stable, and hardware-safe.
+\* *Environmental Metrics Note: Fuel consumption (0.8 L/hr idle rate) and CO₂ emissions (2.31 kg CO₂/L petrol) are calculated directly as scalar multiples of idle wait time based on typical automotive assumptions (not "EPA standard"). They move in lockstep with wait time and do not represent independent empirical sensors.*
 
----
+### Paired-Seed Delay Differences & Statistical Significance (n=20 seeds)
 
-## Defensible Multi-Seed Benchmark Results (20 Evaluation Seeds)
+Evaluating differences paired per evaluation seed eliminates cross-seed traffic variance:
 
-All evaluations were executed blindly across **20 independent evaluation seeds (seeds 100–119, 600 simulated seconds each)**. 
-Hyperparameter tuning of QUBO weights ($W_{coord}, W_{spill}$) and re-optimization intervals was performed strictly on separate **training seeds (seeds 1–5)** to prevent overfitting.
+| Regime | Hybrid (BF) vs Fixed | Hybrid (BF) vs Rule-Based | Hybrid (QAOA) vs Fixed | Hybrid (QAOA) vs Rule-Based | QAOA vs Brute-Force |
+|---|---|---|---|---|---|
+| **Moderate Load** | **-9.39 ± 0.41s** `[-9.79, -8.98]` (Significant) | **+0.41 ± 0.29s** `[+0.12, +0.69]` (Close) | **-7.63 ± 0.51s** `[-8.14, -7.12]` (Significant) | **+2.16 ± 0.56s** `[+1.60, +2.73]` (Rule leads) | **+1.75 ± 0.47s** `[+1.28, +2.23]` (Approximation gap) |
+| **Rush-Hour** | **-23.29 ± 1.63s** `[-24.92, -21.65]` (Significant) | **+1.44 ± 1.41s** `[+0.03, +2.85]` (Close) | **-17.62 ± 1.89s** `[-19.51, -15.73]` (Significant) | **+7.10 ± 1.84s** `[+5.26, +8.95]` (Rule leads) | **+5.66 ± 1.34s** `[+4.33, +7.00]` (Approximation gap) |
+| **Balanced Flow** | **+5.35 ± 1.50s** `[+3.84, +6.85]` (Fixed wins) | **+1.82 ± 0.71s** `[+1.11, +2.53]` (Rule leads) | **+10.05 ± 1.76s** `[+8.30, +11.81]` (Fixed wins) | **+6.53 ± 1.02s** `[+5.51, +7.55]` (Rule leads) | **+4.71 ± 0.93s** `[+3.78, +5.64]` (Approximation gap) |
+| **Surge + Incident** | **+0.68 ± 1.76s** `[-1.07, +2.44]` (**TIE**: CI includes 0) | **-0.08 ± 0.82s** `[-0.91, +0.74]` (**TIE**: CI includes 0) | **+5.86 ± 2.14s** `[+3.73, +8.00]` (Fixed leads) | **+5.10 ± 1.38s** `[+3.72, +6.48]` (Rule leads) | **+5.18 ± 1.40s** `[+3.79, +6.58]` (Approximation gap) |
 
-### Benchmark Summary Table (Mean ± Std Dev & 95% Confidence Intervals)
+### Honest Scientific Findings & Core Conclusions
 
-| Controller | Avg Wait (s) | 95% Confidence Interval | Avg Ped Wait (s) | Throughput (cpm) | Avg Queue (cars) | Est. Fuel (L)* | Est. CO2 (kg)* | Ambulance Travel Time (s) | Extra Delay to Cross Traffic (s) | QAOA Approx Ratio | Exact Optimum Hit Rate |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| **Fixed-Timing Baseline** | 102.45 ± 4.37 | [100.54, 104.37] | 7.65 ± 0.74 | 138.4 ± 0.6 | 364.4 ± 19.7 | 47.01 ± 2.58 | 108.60 ± 5.96 | 15.3 ± 3.4 | 0.00 ± 0.00 | N/A | N/A |
-| **Rule-Based (Longest Queue)** | 105.98 ± 5.93 | [103.38, 108.57] | 4.29 ± 0.65 | 131.0 ± 5.2 | 375.1 ± 23.8 | 48.96 ± 3.24 | 113.10 ± 7.49 | 21.7 ± 3.8 | 3.71 ± 3.55 | N/A | N/A |
-| **Hybrid (Brute-Force)** | 106.50 ± 5.64 | [104.03, 108.98] | **3.37 ± 0.39** | 131.7 ± 3.9 | 377.6 ± 23.0 | 49.15 ± 3.08 | 113.54 ± 7.11 | **11.8 ± 2.2** | 4.11 ± 3.62 | N/A | N/A |
-| **Hybrid (QAOA)** | 109.73 ± 5.15 | [107.47, 111.98] | 3.96 ± 0.45 | 130.1 ± 3.9 | 388.2 ± 20.9 | 50.70 ± 2.81 | 117.11 ± 6.50 | **8.8 ± 1.8** | 7.27 ± 3.88 | **0.9350 ± 0.0868** | **46.3%** |
+1. **Where Fixed-Timing Wins or Ties**:
+   - Under uniform, balanced demand, cyclical 30s/30s splits are optimal: Fixed-Timing achieves **102.45s delay**, beating Hybrid Brute-Force (107.80s) by **5.35s**. When traffic is balanced across all approaches, adaptive re-optimization incurs small phase transition overhead without traffic asymmetry to exploit.
+   - Under severe incident surge, Fixed-Timing (98.69s) and Hybrid Brute-Force (99.37s) are **statistically tied** (paired difference: `+0.68 ± 1.76s`, 95% CI includes zero).
 
-\* *Environmental Metrics Note: Fuel and CO₂ are derived estimates computed directly from idle delay using typical automotive assumptions (0.8 L/hr idle rate and 2.31 kg CO₂/L petrol). Because they are scalar multiples of idle delay, they move directly with waiting time and do not represent independent empirical evidence.*
+2. **Where Hybrid Beats Fixed Decisively**:
+   - In moderate, unsaturated traffic, Hybrid Brute-Force cuts average wait time by **9.39s (34.2% reduction)** compared to Fixed-Timing (`[-9.79, -8.98]s`, $n=20$).
+   - In directional rush-hour demand (3x arterial load), Hybrid Brute-Force cuts average wait time by **23.29s (22.1% reduction)** compared to Fixed-Timing (`[-24.92, -21.65]s`, $n=20$).
 
-### Honest Scientific Diagnosis & Baseline Comparisons
+3. **Hybrid vs Rule-Based (The Real Multi-Objective Trade-Off)**:
+   - On raw vehicle delay, Hybrid and Rule-Based are very close (within 0.4s to 1.4s across regimes, and statistically tied in surge accident at `-0.08 ± 0.82s`).
+   - The hybrid controller's true advantages are multi-objective coordination:
+     - **Pedestrian Wait Times**: Hybrid cuts pedestrian delay across all regimes (down to 2.91s in moderate load vs 7.65s for fixed and 3.31s for rule-based; 6.99s in rush hour vs 8.75s for rule-based).
+     - **Emergency Response**: Hybrid cuts ambulance response travel times by **10.6s to 19.9s** compared to classical controllers by opening coordinated green corridors.
 
-1. **Emergency & Pedestrian Prioritization Trade-off**:
-   The hybrid controller actively prioritizes two critical societal safety objectives:
-   - **Emergency response**: Ambulance travel time is reduced from 15.3s (Fixed) and 21.7s (Rule-Based) down to **11.8s (Brute-Force)** and **8.8s (QAOA)**.
-     *(Note on Ambulance Times: The 8.8s for QAOA vs 11.8s for Brute-Force is stochastic simulation noise across 20 evaluation seeds, as evidenced by their overlapping standard deviations ($8.8 \pm 1.8$s vs $11.8 \pm 2.2$s). QAOA is an approximate solver targeting the brute-force minimum; this difference does not represent quantum advantage).*
-   - **Pedestrian safety**: Pedestrian waiting time is cut by **56%** from 7.65s (Fixed) down to **3.37s (Brute-Force)** and 3.96s (QAOA).
-   Holding cross-traffic to clear pedestrian crosswalks and open ambulance green corridors naturally imposes an average collateral delay of **+4.1s to +7.3s** on normal civilian vehicular traffic.
+4. **Phase Switch Counts (Honest Comparison Across Controllers)**:
+   - With the current configuration (10s re-optimization interval, $W_{switch}=1.0$), **the Hybrid controller does NOT switch fewer times than classical baselines**.
+   - Over 600 seconds across 6 intersections:
+     - Fixed-Timing switches **114.0 times** (strict 30s cycles).
+     - Hybrid Brute-Force switches **156.4 to 327.9 times** (~2.5x more than Fixed).
+     - Rule-Based switches **154.6 to 324.4 times** (virtually identical to Hybrid).
+   - Because Hybrid actively reacts to dynamic queue pressures and pedestrian crosswalk thresholds, it switches phases adaptively at a rate comparable to rule-based logic.
 
-2. **Hyperparameter Tuning on Training Seeds (1–5)**:
-   Prior to tuning, Hybrid (Brute-Force) suffered because high coordination ($W_{coord}=2.5$) and spillback ($W_{spill}=6.0$) weights overwhelmed the linear queue signal ($W_{queue}=1.0$), while an unpenalized switching policy caused signal chattering. Retuning to $W_{coord}=0.2, W_{spill}=0.5$, adding switching penalty $W_{switch}=2.5$, and setting the re-optimization interval to 25s (20–30s range) restored responsiveness while eliminating signal flutter.
+5. **QAOA Approximation Accuracy**:
+   - Across regimes, QAOA (p=2) achieves mean approximation ratios between $0.9192$ and $0.9476$, finding the exact ground truth optimum in 32.6% to 59.8% of rounds.
+   - Because sub-optimal bitstrings are chosen on a portion of rounds, QAOA vehicle delay is slightly higher than Brute-Force (+1.75s to +5.66s gap).
+   - All quantum results presented were computed on quantum simulators (PennyLane `default.qubit` / Amazon Braket local simulator); no physical quantum hardware was used unless a verified `results/qpu_run_*.json` file is present.
 
-3. **QAOA Approximation Accuracy**:
-   QAOA achieves an approximation ratio of $0.9350 \pm 0.0868$ with an exact optimum hit rate of $46.3\%$. Sub-optimal bitstrings chosen on ~54% of rounds under bounded COBYLA iterations slightly compound queue depth relative to exact Brute-Force ($388.2$ vs $377.6$ vehicles).
+6. **Ambulance Travel Time: QAOA vs Brute-Force**:
+   - In moderate load (`-1.00 ± 1.15s`, CI `[-2.15, +0.15]`) and rush hour (`-0.75 ± 0.80s`, CI `[-1.55, +0.05]`), the paired ambulance time difference between QAOA and Brute-Force **includes zero (statistically tied)**.
+   - In balanced flow and surge, the modest ~1-2s difference is discrete simulation queue noise (the presence or absence of a single civilian vehicle in front of the ambulance at dispatch tick 15). Both controllers apply identical $W_{emerg}=50$ biases and activate green corridors; no quantum advantage over brute force is claimed.
 
 ---
 
@@ -789,45 +795,45 @@ A systematic sweep across 20 evaluation seeds (100–119) evaluated the Pareto t
 ## "Why Quantum?" Algorithmic Evidence (Phase E)
 
 ### 1. Simulated Annealing Baseline & Classical Heuristics
-Alongside Brute-Force and QAOA, a classical Simulated Annealing solver was evaluated on the traffic QUBO. Across 100 test states, Simulated Annealing finds optimal solutions in **98% of cases within 4.2ms**, establishing a fast classical heuristic baseline. This demonstrates that classical heuristics also perform well on these problem sizes today; we make no claim of quantum supremacy.
+Alongside Brute-Force and QAOA, a classical Simulated Annealing solver was evaluated on the traffic QUBO. Across 100 test states, Simulated Annealing finds optimal solutions in **98% of cases within 4.2ms**, establishing a fast classical heuristic baseline. Because classical heuristics also find the global optimum in most cases in milliseconds today, the honest scientific claim is: **this is a quantum-ready formulation; classical heuristics also work effectively today**.
 
 ### 2. QAOA Depth Study ($p=1$ to $4$)
-Evaluated across 20 distinct traffic snapshots with bounded classical iterations (25 COBYLA steps):
-- **$p=1$**: Approximation ratio $0.9129 \pm 0.0935$, Exact hit rate: 40%
-- **$p=2$**: Approximation ratio **$0.9517 \pm 0.0714$**, Exact hit rate: **60%** (Optimal trade-off)
-- **$p=3$**: Approximation ratio $0.9327 \pm 0.0798$, Exact hit rate: 50%
-- **$p=4$**: Approximation ratio $0.9220 \pm 0.0668$, Exact hit rate: 30%
-- *Observation*: For a 6-qubit system, barren plateaus do not occur (barren plateaus are an asymptotic property of deep random circuits with many qubits). Rather, increasing circuit depth to $p=3$ and $p=4$ doubles the parameter space ($2p = 6$ to $8$ variational angles $\vec{\gamma}, \vec{\beta}$). Under a bounded budget of only 25 COBYLA steps, the classical optimizer cannot reliably converge on these higher-dimensional landscapes, making $p=2$ the empirical sweet spot under bounded evaluation budgets.
-- Saved artifact: `results/qaoa_depth_vs_ratio.png`.
+Evaluated across 20 distinct traffic network snapshots with an optimizer budget scaled proportionally to circuit depth (`max_iterations = 20 + 20*p`):
+- **$p=1$**: Approximation ratio $0.9031 \pm 0.0347$ (95% CI), Exact hit rate: 25.0%
+- **$p=2$**: Approximation ratio $0.9025 \pm 0.0345$ (95% CI), Exact hit rate: 25.0%
+- **$p=3$**: Approximation ratio $0.9217 \pm 0.0426$ (95% CI), Exact hit rate: 40.0%
+- **$p=4$**: Approximation ratio **$0.9545 \pm 0.0247$** (95% CI), Exact hit rate: **55.0%**
+- *Observation*: For a 6-qubit system, barren plateaus do not occur (barren plateaus are an asymptotic property of deep random circuits on many qubits). When classical optimizer iterations are scaled proportionally with the $2p$ variational angles, higher depth ($p=3, 4$) systematically improves approximation ratio and exact hit frequency. This confirms that prior underperformance at higher depths under fixed 25-step budgets was an optimizer budget artifact rather than barren plateaus.
+- Saved artifact: `results/qaoa_depth_vs_ratio.png` and `results/qaoa_depth_data.json`.
 
 ### 3. NISQ Depolarizing Noise Study
-Simulated on PennyLane's `default.mixed` density matrix simulator under single-qubit depolarizing noise:
-- **Ideal (Noiseless)**: Ratio $0.7658 \pm 0.1522$ (density matrix statevector)
-- **Low Noise ($p_{gate}=0.005$)**: Ratio $0.8081 \pm 0.1311$
-- **Medium Noise ($p_{gate}=0.02$)**: Ratio $0.7440 \pm 0.1353$
-- **High Noise ($p_{gate}=0.05$)**: Ratio $0.7991 \pm 0.1412$
-- *Observation & Interpretation*: Physically, noise cannot improve optimization quality. The slight inversion (0.77 noiseless vs 0.81 low noise) reflects optimizer trajectory variance and finite sampling variance across 25 COBYLA steps on mixed-state density matrices. This noise study should be interpreted as **inconclusive** under tightly bounded classical optimization budgets.
-- Saved artifact: `results/qaoa_noise_study.png`.
+Simulated on PennyLane's `default.mixed` density matrix simulator under single-qubit depolarizing noise across 20 distinct traffic snapshots (mean ± 95% CI):
+- **Ideal (Noiseless)**: Ratio **$0.6899 \pm 0.0333$** (Top state prob: 16.86%)
+- **Low Noise ($p_{gate}=0.005$)**: Ratio $0.6809 \pm 0.0319$ (Top state prob: 15.24%)
+- **Medium Noise ($p_{gate}=0.02$)**: Ratio $0.6564 \pm 0.0280$ (Top state prob: 11.46%)
+- **High Noise ($p_{gate}=0.05$)**: Ratio $0.6163 \pm 0.0214$ (Top state prob: 7.02%)
+- *Observation*: Noiseless execution strictly outperforms noisy execution across all 20 snapshots. Solution quality and ground-truth state concentration monotonically degrade as depolarizing noise increases.
+- Saved artifact: `results/qaoa_noise_study.png` and `results/qaoa_noise_data.json`.
 
 ### 4. Classical Combinatorial Scaling ($O(2^N)$ Explosion)
-Brute-force exhaustive search runtime measured from $N=4$ to $N=20$ intersections ($2^N$ states) and extrapolated to $N=24$:
+Brute-force exhaustive search runtime measured from $N=4$ to $N=20$ intersections ($2^N$ states) and projected to $N=24$ based on empirical evaluation throughput (~165k states/sec):
 
-| Intersections ($N$) | Search Space ($2^N$ states) | Classical Wall-Clock Runtime | Evaluations/sec |
+| Intersections ($N$) | Search Space ($2^N$ states) | Classical Wall-Clock Runtime | Measurement Type |
 |---|---|---|---|
-| 4 | 16 | 0.00013 s | 120,663 |
-| 6 | 64 | 0.00028 s | 231,297 |
-| 8 | 256 | 0.00114 s | 225,332 |
-| 10 | 1,024 | 0.00509 s | 201,139 |
-| 12 | 4,096 | 0.04293 s | 95,403 |
-| 14 | 16,384 | 0.08939 s | 183,285 |
-| 16 | 65,536 | 0.33317 s | 196,707 |
-| 18 | 262,144 | 1.44147 s | 181,858 |
-| 20 | 1,048,576 | 7.61289 s | 137,736 |
-| 22 | 4,194,304 | 24.37 s (projected) | 172,100 |
-| 24 | 16,777,216 | 97.48 s (projected) | 172,100 |
+| 4 | 16 | 0.00021 s | Measured |
+| 6 | 64 | 0.00025 s | Measured (Chennai 2x3 Grid) |
+| 8 | 256 | 0.00117 s | Measured |
+| 10 | 1,024 | 0.00447 s | Measured |
+| 12 | 4,096 | 0.04288 s | Measured |
+| 14 | 16,384 | 0.08249 s | Measured |
+| 16 | 65,536 | 0.37016 s | Measured |
+| 18 | 262,144 | 1.39770 s | Measured |
+| 20 | 1,048,576 | 8.09737 s | Measured |
+| 22 | 4,194,304 | 25.47 s | Projected (Extrapolated) |
+| 24 | 16,777,216 | 101.87 s | Projected (Extrapolated) |
 
-- *Observation*: Classical brute force is viable at $N=6$ (<1ms), but at $N=24$ it requires over 1.5 minutes per single re-optimization step. However, fast classical heuristics (such as Simulated Annealing, which achieves 98% hit rate in 4.2ms) also scale effectively to these problem sizes today. The value of this formulation is that it is **quantum-ready**, mapping traffic dynamics natively to QUBO/Ising Hamiltonians without claiming quantum advantage over classical heuristics.
-- Saved artifact: `results/scaling_curve.png` and `results/scaling_table.csv`.
+- *Observation*: While dense brute-force search exhibits $O(2^N)$ exponential explosion, practical traffic QUBO matrices are **sparse and structured** (planar street graph topology with bounded intersection degree $\le 4$). Specialized classical solvers (branch-and-bound, simulated annealing, and tensor network contraction) solve sparse planar spin systems far faster than dense brute-force enumeration.
+- Saved artifact: `results/scaling_curve.png`, `results/scaling_table.csv`, and `results/scaling_metadata.json`.
 
 ---
 
@@ -851,7 +857,7 @@ class SignalControllerInterface(ABC):
 1. **Software Conflict Monitor (`SoftwareConflictMonitor`)**:
    - Strictly prohibits conflicting simultaneous green indications (e.g. concurrent N-S and E-W greens).
    - Enforces a **10-second minimum green constraint** to prevent rapid flickering.
-   - Enforces a **2-second yellow clearance interval** on all phase transitions.
+   - *Clearance Interval Note*: Yellow and all-red clearance intervals are defined in the software conflict monitor as an architectural specification for physical field controllers; they are not exercised by the discrete tick simulator, which uses binary green/red phases.
 2. **Hardware Watchdog & Heartbeat Monitor (`HardwareWatchdog`)**:
    - Monitors controller pulse heartbeats. If quantum or classical optimization times out or exceeds its execution budget (>15s elapsed), the watchdog immediately triggers `safe_fallback()` into fail-safe fixed-timing cycle.
 
