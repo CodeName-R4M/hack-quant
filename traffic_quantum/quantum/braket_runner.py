@@ -38,19 +38,17 @@ def run_braket_traffic_qaoa(use_hardware_qpu: bool = False):
         # IonQ Aria-1 (Trapped-ion QPU)
         device_arn = "arn:aws:braket:us-east-1::device/qpu/ionq/Aria-1"
         print(f"⚛️ Target Device: Real QPU (IonQ Aria-1) [{device_arn}]")
+        dev = qml.device(
+            "braket.aws.qubit",
+            device_arn=device_arn,
+            wires=6,
+            shots=1000,
+            s3_destination_folder=s3_folder
+        )
     else:
-        # On-demand managed state-vector simulator (SV1)
-        device_arn = "arn:aws:braket:::device/quantum-simulator/amazon/sv1"
-        print(f"⚡ Target Device: AWS Braket Cloud Simulator (SV1) [{device_arn}]")
-
-    # 3. Initialize PennyLane Braket Device
-    dev = qml.device(
-        "braket.aws.qubit",
-        device_arn=device_arn,
-        wires=6,
-        shots=1000,
-        s3_destination_folder=s3_folder
-    )
+        # High-performance Braket Local Simulator (runs with zero IAM permissions/roles required)
+        print("⚡ Target Device: Amazon Braket Local Device (braket.local.qubit)")
+        dev = qml.device("braket.local.qubit", wires=6, shots=1000)
 
     # 4. Build 6-Qubit Traffic Hamiltonian (A=0, B=1, C=2, D=3, E=4, F=5)
     qubo_matrix = np.array([
