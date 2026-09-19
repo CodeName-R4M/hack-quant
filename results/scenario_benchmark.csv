@@ -1,0 +1,13 @@
+Scenario,Scenario_ID,Controller,Avg Wait (s),Wait Mean (s),Wait Std (s),Wait 95% CI,Throughput (cpm),Avg Queue,Est. Fuel (L),Est. CO2 (kg),Phase Switches
+Balanced Flow (Uniform Demand),balanced,Fixed-Timing Baseline,58.93 +/- 3.03,58.93,3.03,"[57.60, 60.26]",126.8 +/- 1.3,210.3 +/- 14.0,13.22 +/- 0.89,30.55 +/- 2.06,54.0 +/- 0.0
+Balanced Flow (Uniform Demand),balanced,Rule-Based (Longest Queue),55.41 +/- 3.21,55.41,3.21,"[54.01, 56.82]",128.6 +/- 2.2,197.6 +/- 14.3,12.52 +/- 0.94,28.91 +/- 2.16,141.1 +/- 5.9
+Balanced Flow (Uniform Demand),balanced,Hybrid (Brute-Force),59.88 +/- 3.50,59.88,3.5,"[58.35, 61.41]",124.1 +/- 2.1,212.7 +/- 15.3,13.54 +/- 1.04,31.28 +/- 2.40,73.7 +/- 3.5
+Balanced Flow (Uniform Demand),balanced,Hybrid (QAOA),61.19 +/- 3.92,61.19,3.92,"[59.47, 62.91]",121.1 +/- 2.7,217.5 +/- 18.3,13.72 +/- 1.21,31.69 +/- 2.80,68.0 +/- 5.3
+Rush-Hour (3x Arterial Demand),rush_hour,Fixed-Timing Baseline,60.45 +/- 1.83,60.45,1.83,"[59.65, 61.25]",96.1 +/- 2.6,172.1 +/- 7.4,10.29 +/- 0.46,23.76 +/- 1.05,54.0 +/- 0.0
+Rush-Hour (3x Arterial Demand),rush_hour,Rule-Based (Longest Queue),47.82 +/- 3.26,47.82,3.26,"[46.39, 49.25]",108.7 +/- 1.6,129.9 +/- 11.5,8.16 +/- 0.72,18.86 +/- 1.65,79.3 +/- 4.1
+Rush-Hour (3x Arterial Demand),rush_hour,Hybrid (Brute-Force),54.90 +/- 2.91,54.9,2.91,"[53.63, 56.18]",103.2 +/- 1.9,149.4 +/- 10.7,9.38 +/- 0.68,21.67 +/- 1.57,50.0 +/- 2.3
+Rush-Hour (3x Arterial Demand),rush_hour,Hybrid (QAOA),55.11 +/- 2.82,55.11,2.82,"[53.87, 56.35]",101.4 +/- 2.4,150.1 +/- 7.6,9.39 +/- 0.58,21.70 +/- 1.34,54.6 +/- 2.1
+Surge + Incident (Lane Closure),surge_accident,Fixed-Timing Baseline,57.80 +/- 1.67,57.8,1.67,"[57.07, 58.54]",110.0 +/- 2.4,182.9 +/- 8.1,11.00 +/- 0.51,25.42 +/- 1.17,54.0 +/- 0.0
+Surge + Incident (Lane Closure),surge_accident,Rule-Based (Longest Queue),54.95 +/- 3.06,54.95,3.06,"[53.61, 56.29]",111.8 +/- 1.3,166.8 +/- 12.2,10.51 +/- 0.77,24.27 +/- 1.78,95.8 +/- 3.8
+Surge + Incident (Lane Closure),surge_accident,Hybrid (Brute-Force),61.06 +/- 3.27,61.06,3.27,"[59.62, 62.49]",106.4 +/- 2.3,185.1 +/- 13.4,11.70 +/- 0.85,27.02 +/- 1.97,55.0 +/- 2.7
+Surge + Incident (Lane Closure),surge_accident,Hybrid (QAOA),63.06 +/- 3.79,63.06,3.79,"[61.39, 64.72]",102.6 +/- 2.3,191.1 +/- 12.2,11.97 +/- 0.95,27.66 +/- 2.19,55.0 +/- 1.8

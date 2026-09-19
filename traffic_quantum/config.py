@@ -97,7 +97,7 @@ class QAOAConfig:
 @dataclass
 class HybridTimingConfig:
     """Classical timing engine for dynamic phase durations."""
-    reopt_interval_sec: int = 20  # Re-optimize phases every 20-30 seconds (stabilizes phase switching)
+    reopt_interval_sec: int = 25  # Re-optimize phases every 20-30 seconds (stabilizes phase switching)
     base_green_sec: int = 15      # Baseline green time
     k_queue: float = 0.5          # Extension coefficient per queued vehicle
     min_green_sec: int = 10       # Minimum green duration

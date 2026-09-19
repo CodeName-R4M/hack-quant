@@ -379,7 +379,12 @@ def generate_hospital_maps_html() -> str:
                     <div class="pulse-beacon"></div>
                     <span>CHENNAI EMS 108</span>
                 </div>
-                <div class="cad-badge">GOOGLE MAPS NAV</div>
+                <div class="cad-badge">STANDALONE NAV DEMO</div>
+            </div>
+
+            <div style="background: rgba(245, 158, 11, 0.12); border-bottom: 1px solid rgba(245, 158, 11, 0.4); padding: 9px 16px; font-size: 0.74rem; color: #fde68a; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-triangle-exclamation" style="color: #fbbf24; font-size: 0.85rem; flex-shrink: 0;"></i>
+                <span><strong>Standalone Navigation Demo</strong>: Uses public map tiles and OSRM routing. Not wired to the quantum traffic signal simulator backend.</span>
             </div>
 
             <div class="console-body">

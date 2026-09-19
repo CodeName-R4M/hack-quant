@@ -530,10 +530,29 @@ def generate_video_canvas_html(
     }}));
   }}
 
-  // Load simulator vehicles if any exist
+  // Load simulator vehicles strictly from Python simulator state (queues + in-transit)
   if (simData.vehicles && simData.vehicles.length > 0) {{
       const gateCounts = {{}};
       simData.vehicles.forEach((v, vIdx) => {{
+        if (v.u !== undefined && v.v !== undefined) {{
+          // In-transit vehicle traversing road segment between u and v
+          const u = v.u, wNode = v.v;
+          const eCurve = getEdgeCurve(u, wNode);
+          const prog = Math.min(0.85, 0.2 + (vIdx % 5) * 0.14);
+          const pt = evalBezier(eCurve.p0, eCurve.cp1, eCurve.cp2, eCurve.p1, prog);
+          flowVehicles.push(createFlowCar({{
+            id: v.id,
+            isGate: false,
+            edgeKey: `${{u}}_${{wNode}}`,
+            progress: prog,
+            x: pt.x + pt.nx * 8,
+            y: pt.y + pt.ny * 8,
+            heading: pt.angle,
+            marked: v.marked,
+          }}));
+          return;
+        }}
+
         let gid = "N1";
         if (v.app === "N") gid = (v.targetNode === 0) ? "N1" : (v.targetNode === 1) ? "N2" : "N3";
         else if (v.app === "S") gid = (v.targetNode === 3) ? "S1" : (v.targetNode === 4) ? "S2" : "S3";
@@ -1280,10 +1299,7 @@ def generate_video_canvas_html(
         return true;
       }});
 
-      // Auto-inflow when traffic gets low
-      if (simData.autoFlow && flowVehicles.length < 8 && frameCount % 90 === 0) {{
-        spawnRandomGateCar();
-      }}
+      // Vehicles strictly mirror Python simulator arrivals and queues; no untracked JS phantom spawning.
 
       // Ambulance Navigation along Curved Splines
       if (ambulance.active && ambulance.pathNodes && ambulance.pathNodes.length > 1) {{
