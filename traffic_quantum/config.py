@@ -5,8 +5,15 @@ metrics coefficients, and security policies are centralized here.
 No magic numbers are scattered across modules.
 """
 
+import os
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 
 @dataclass
@@ -36,7 +43,7 @@ class SimulationConfig:
     """Tick-based traffic simulation parameters."""
     tick_duration_sec: float = 1.0  # 1 tick = 1 second
     default_seed: int = 42
-    default_sim_duration_sec: int = 300  # 5 minutes benchmark run
+    default_sim_duration_sec: int = 600  # 10 minutes benchmark run
     
     # Inflow arrival rates (Poisson-like probability per tick at boundary entry queues)
     base_arrival_rate: float = 0.35  # ~21 cars/minute per entry point
@@ -67,9 +74,11 @@ class BaselineConfig:
 class QUBOConfig:
     """Weights and penalty coefficients for QUBO cost Hamiltonian."""
     w_queue: float = 1.0          # Linear penalty for queued cars facing red
-    w_coord: float = 2.5          # Quadratic penalty for mismatched neighbor green waves
-    w_spillback: float = 6.0      # Quadratic/linear penalty for discharging into full downstream road
+    w_coord: float = 0.2          # Quadratic coupling (tuned on training seeds 1-5)
+    w_spillback: float = 0.5      # Downstream spillback penalty (tuned on training seeds 1-5)
     w_emergency: float = 50.0     # Heavy linear bias when emergency vehicle approaches
+    w_pedestrian: float = 2.0     # Linear penalty for queued pedestrian waiting
+    w_switch: float = 2.5         # Switching penalty (cost for flipping signal phase)
     spillback_threshold: float = 0.80  # Queue / capacity fraction considered spillback hazard
 
 
@@ -88,9 +97,9 @@ class QAOAConfig:
 @dataclass
 class HybridTimingConfig:
     """Classical timing engine for dynamic phase durations."""
-    reopt_interval_sec: int = 30  # Re-optimize phases every 30 seconds
+    reopt_interval_sec: int = 20  # Re-optimize phases every 20-30 seconds (stabilizes phase switching)
     base_green_sec: int = 15      # Baseline green time
-    k_queue: float = 0.8          # Extension coefficient per queued vehicle
+    k_queue: float = 0.5          # Extension coefficient per queued vehicle
     min_green_sec: int = 10       # Minimum green duration
     max_green_sec: int = 45       # Maximum green duration
 
@@ -103,6 +112,17 @@ class EmergencyConfig:
     max_preemption_duration_sec: int = 90  # Hard cutoff to prevent endless starvation
     default_origin: int = 0
     default_destination: int = 5
+    hard_preemption_mode: bool = False
+    max_concurrent_emergencies: int = 2
+
+
+@dataclass
+class PedestrianConfig:
+    """Pedestrian demand and crossing parameters."""
+    arrival_rate: float = 0.05       # Probability per second of a pedestrian arriving at an intersection
+    max_wait_sec: int = 45          # Maximum acceptable wait before forced walk phase
+    walk_duration_sec: int = 10     # Duration of forced walk phase
+    w_pedestrian: float = 2.0       # Weight for pedestrian wait penalty in optimization
 
 
 @dataclass
@@ -115,12 +135,20 @@ class MetricsConfig:
 @dataclass
 class SecurityConfig:
     """Cryptographic authorization and rate limiting."""
-    jwt_secret: str = "quant-traffic-jwt-key-chennai-sec-2026"
+    jwt_secret: str = field(default_factory=lambda: os.getenv("JWT_SECRET", "quant-traffic-jwt-key-chennai-sec-2026"))
     jwt_algorithm: str = "HS256"
     token_validity_sec: int = 600
     rate_limit_requests: int = 5
     rate_limit_window_sec: int = 60
     audit_log_file: str = "audit_log.jsonl"
+
+
+@dataclass
+class UIConfig:
+    """Dashboard UI and tile server settings."""
+    map_tile_provider: str = field(default_factory=lambda: os.getenv("MAP_TILE_PROVIDER", "carto_dark"))
+    cartodb_api_key: str = field(default_factory=lambda: os.getenv("CARTODB_API_KEY", ""))
+    google_maps_api_key: str = field(default_factory=lambda: os.getenv("GOOGLE_MAPS_API_KEY", ""))
 
 
 @dataclass
@@ -133,8 +161,10 @@ class MasterConfig:
     qaoa: QAOAConfig = field(default_factory=QAOAConfig)
     hybrid: HybridTimingConfig = field(default_factory=HybridTimingConfig)
     emergency: EmergencyConfig = field(default_factory=EmergencyConfig)
+    pedestrian: PedestrianConfig = field(default_factory=PedestrianConfig)
     metrics: MetricsConfig = field(default_factory=MetricsConfig)
     security: SecurityConfig = field(default_factory=SecurityConfig)
+    ui: UIConfig = field(default_factory=UIConfig)
 
 
 # Global default instance

@@ -1,0 +1,26 @@
+{
+  "1": {
+    "p": 1,
+    "mean_ratio": 0.9129,
+    "std_ratio": 0.0935,
+    "exact_hit_rate": 0.4
+  },
+  "2": {
+    "p": 2,
+    "mean_ratio": 0.9517,
+    "std_ratio": 0.0714,
+    "exact_hit_rate": 0.6
+  },
+  "3": {
+    "p": 3,
+    "mean_ratio": 0.9327,
+    "std_ratio": 0.0798,
+    "exact_hit_rate": 0.5
+  },
+  "4": {
+    "p": 4,
+    "mean_ratio": 0.922,
+    "std_ratio": 0.0668,
+    "exact_hit_rate": 0.3
+  }
+}

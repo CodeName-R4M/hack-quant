@@ -1,0 +1,1 @@
+{"timestamp": "2026-09-19T14:18:08.201780+00:00", "client_id": "Ambulance Unit 108 (ALS Trauma)", "action": "emergency_dispatch", "details": {"origin": 0, "dest": 5, "hospital": "Fortis Malar Hospital (Adyar / J_F)"}, "outcome": "GRANTED", "entry_hash": "d0cad74ae20fa72f9bc87361c6d2873efec4400feecebe4450cb66c5252339b5"}

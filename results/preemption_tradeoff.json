@@ -1,0 +1,67 @@
+{
+  "no_preemption": {
+    "w_emerg": 0.0,
+    "label": "No Preemption",
+    "amb_time": 21.45,
+    "amb_time_saved": 0.0,
+    "extra_delay": 0.0,
+    "normal_wait": 36.13199999999999
+  },
+  "soft_preemption": [
+    {
+      "w_emerg": 5.0,
+      "label": "Soft (W=5)",
+      "amb_time": 12.0,
+      "amb_time_saved": 9.45,
+      "extra_delay": 1.15,
+      "normal_wait": 37.28
+    },
+    {
+      "w_emerg": 15.0,
+      "label": "Soft (W=15)",
+      "amb_time": 11.75,
+      "amb_time_saved": 9.7,
+      "extra_delay": 1.38,
+      "normal_wait": 37.51
+    },
+    {
+      "w_emerg": 30.0,
+      "label": "Soft (W=30)",
+      "amb_time": 11.75,
+      "amb_time_saved": 9.7,
+      "extra_delay": 1.38,
+      "normal_wait": 37.51
+    },
+    {
+      "w_emerg": 50.0,
+      "label": "Soft (W=50)",
+      "amb_time": 11.75,
+      "amb_time_saved": 9.7,
+      "extra_delay": 1.38,
+      "normal_wait": 37.51
+    },
+    {
+      "w_emerg": 80.0,
+      "label": "Soft (W=80)",
+      "amb_time": 11.75,
+      "amb_time_saved": 9.7,
+      "extra_delay": 1.38,
+      "normal_wait": 37.51
+    },
+    {
+      "w_emerg": 150.0,
+      "label": "Soft (W=150)",
+      "amb_time": 11.75,
+      "amb_time_saved": 9.7,
+      "extra_delay": 1.38,
+      "normal_wait": 37.51
+    }
+  ],
+  "hard_override": {
+    "label": "Hard Override",
+    "amb_time": 8.0,
+    "amb_time_saved": 13.45,
+    "extra_delay": 1.75,
+    "normal_wait": 37.89
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "Ideal (Noiseless)": {
+    "noise_rate": 0.0,
+    "mean_ratio": 0.7658,
+    "std_ratio": 0.1522
+  },
+  "Low (p=0.005)": {
+    "noise_rate": 0.005,
+    "mean_ratio": 0.8081,
+    "std_ratio": 0.1311
+  },
+  "Medium (p=0.02)": {
+    "noise_rate": 0.02,
+    "mean_ratio": 0.744,
+    "std_ratio": 0.1353
+  },
+  "High (p=0.05)": {
+    "noise_rate": 0.05,
+    "mean_ratio": 0.7991,
+    "std_ratio": 0.1412
+  }
+}

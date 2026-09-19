@@ -30,6 +30,18 @@ class Vehicle:
     exit_tick: Optional[int] = 0
 
 
+@dataclass
+class Pedestrian:
+    """Represents an individual pedestrian or group waiting to cross."""
+    id: int
+    node: int
+    direction: str  # 'NS' or 'EW'
+    arrival_tick: int
+    waiting_ticks: int = 0
+    completed: bool = False
+    exit_tick: Optional[int] = None
+
+
 class TrafficSimulator:
     """Tick-based traffic simulation engine for a multi-intersection grid."""
 
@@ -41,12 +53,20 @@ class TrafficSimulator:
         
         self.current_tick: int = 0
         self.vehicle_id_counter: int = 0
+        self.pedestrian_id_counter: int = 0
         
         # Approach queues: {node_id: {'N': [Vehicle], 'S': [Vehicle], 'E': [Vehicle], 'W': [Vehicle]}}
         self.queues: Dict[int, Dict[str, List[Vehicle]]] = {
             node: {"N": [], "S": [], "E": [], "W": []}
             for node in self.network.graph.nodes
         }
+        
+        # Pedestrian queues: {node_id: {'NS': [Pedestrian], 'EW': [Pedestrian]}}
+        self.pedestrian_queues: Dict[int, Dict[str, List[Pedestrian]]] = {
+            node: {"NS": [], "EW": []}
+            for node in self.network.graph.nodes
+        }
+        self.completed_pedestrians: List[Pedestrian] = []
         
         # In-transit vehicles on directed edges: {(u, v): [Vehicle]}
         self.in_transit: Dict[Tuple[int, int], List[Vehicle]] = {
@@ -67,6 +87,7 @@ class TrafficSimulator:
 
         # Boundary entry points
         self.boundary_approaches = self.network.get_boundary_approaches()
+        self.manual_traffic_mode: bool = False
 
     def reset(self, seed: Optional[int] = None) -> None:
         """Resets the simulator to time 0 with clean state."""
@@ -87,9 +108,28 @@ class TrafficSimulator:
             for node in self.network.graph.nodes
         }
         self.completed_vehicles = []
+        self.pedestrian_queues = {
+            node: {"NS": [], "EW": []}
+            for node in self.network.graph.nodes
+        }
+        self.completed_pedestrians = []
+        self.pedestrian_id_counter = 0
         self.throughput_history = []
         self.queue_length_history = []
         self.spillback_events_count = 0
+
+    def clear_all_vehicles(self) -> None:
+        """Removes all active vehicles from queues and in-transit segments.
+
+        Signals, tick counter, and history are preserved — only the
+        live vehicle population is wiped.  Use this when switching to
+        Manual Inflow Only mode so the map starts clean.
+        """
+        for node in self.network.graph.nodes:
+            for direction in ("N", "S", "E", "W"):
+                self.queues[node][direction].clear()
+        for edge_key in list(self.in_transit.keys()):
+            self.in_transit[edge_key].clear()
 
     def set_signal_phases(self, phases: Dict[int, int]) -> None:
         """Updates intersection signal phases. 0 = NS green, 1 = EW green."""
@@ -118,10 +158,77 @@ class TrafficSimulator:
         self.queues[origin_node][approach].append(veh)
         return veh
 
+    def spawn_at_entry_portal(self, portal_id: int, count: int = 1, is_emergency: bool = False) -> List[Vehicle]:
+        """Spawns vehicles at one of the 10 perimeter entry portals.
+        
+        0: N1 (to J0 / A, approach N)
+        1: N2 (to J1 / B, approach N)
+        2: N3 (to J2 / C, approach N)
+        3: W1 (to J0 / A, approach W)
+        4: W2 (to J3 / D, approach W)
+        5: S1 (to J3 / D, approach S)
+        6: S2 (to J4 / E, approach S)
+        7: S3 (to J5 / F, approach S)
+        8: E1 (to J2 / C, approach E)
+        9: E2 (to J5 / F, approach E)
+        """
+        portal_map = {
+            0: (0, "N"),
+            1: (1, "N"),
+            2: (2, "N"),
+            3: (0, "W"),
+            4: (3, "W"),
+            5: (3, "S"),
+            6: (4, "S"),
+            7: (5, "S"),
+            8: (2, "E"),
+            9: (5, "E"),
+        }
+        ENTRY_NAME_TO_PORTAL = {
+            "N1": 0, "N2": 1, "N3": 2,
+            "W1": 3, "W2": 4,
+            "S1": 5, "S2": 6, "S3": 7,
+            "E1": 8, "E2": 9,
+        }
+        if isinstance(portal_id, str):
+            clean_pid = portal_id.strip().upper()
+            if clean_pid in ENTRY_NAME_TO_PORTAL:
+                portal_id = ENTRY_NAME_TO_PORTAL[clean_pid]
+            else:
+                try:
+                    portal_id = int(clean_pid)
+                except ValueError:
+                    raise ValueError(f"Invalid portal_id {portal_id}. Must be 0-9 or N1-N3, S1-S3, W1-W2, E1-E2.")
+
+        if portal_id not in portal_map:
+            raise ValueError(f"Invalid portal_id {portal_id}. Must be 0-9 or N1-N3, S1-S3, W1-W2, E1-E2.")
+        
+        node_id, approach = portal_map[portal_id]
+        spawned = []
+        for _ in range(count):
+            v = self.spawn_vehicle(node_id, approach, is_emergency=is_emergency)
+            if v:
+                spawned.append(v)
+        return spawned
+
+    def inject_by_entry_name(self, entry_name: str, count: int = 1, is_emergency: bool = False) -> List[Vehicle]:
+        """Convenience method to inject vehicles at a perimeter entry point by name (e.g. 'N1', 'S2')."""
+        return self.spawn_at_entry_portal(entry_name, count=count, is_emergency=is_emergency)
+
+    inject_batch_at_portal = spawn_at_entry_portal
+
     def _generate_boundary_arrivals(self) -> None:
         """Stochastically spawns vehicles at network perimeter boundaries based on arrival rate."""
-        rate = self.config.simulation.base_arrival_rate
+        if getattr(self, "manual_traffic_mode", False):
+            return
+        custom_rates = getattr(self, "boundary_arrival_rates", None)
         for node_id, approach in self.boundary_approaches:
+            if custom_rates and (node_id, approach) in custom_rates:
+                rate = custom_rates[(node_id, approach)]
+            elif custom_rates and approach in custom_rates:
+                rate = custom_rates[approach]
+            else:
+                rate = self.config.simulation.base_arrival_rate
             if self.rng.random() < rate:
                 self.spawn_vehicle(node_id, approach)
 
@@ -225,6 +332,42 @@ class TrafficSimulator:
                     veh.waiting_ticks += 1
                     veh.travel_ticks += 1
 
+    def _generate_pedestrian_arrivals(self) -> None:
+        """Stochastically spawns pedestrians wanting to cross parallel to NS or EW."""
+        rate = getattr(getattr(self.config, "pedestrian", None), "arrival_rate", 0.05)
+        for node in self.network.graph.nodes:
+            if self.rng.random() < rate:
+                d = "NS" if self.rng.random() < 0.5 else "EW"
+                self.pedestrian_id_counter += 1
+                ped = Pedestrian(
+                    id=self.pedestrian_id_counter,
+                    node=node,
+                    direction=d,
+                    arrival_tick=self.current_tick,
+                )
+                self.pedestrian_queues[node][d].append(ped)
+
+    def _service_pedestrians(self) -> None:
+        """Allows pedestrians parallel to green vehicle phases to cross, while red ones wait."""
+        for node in self.network.graph.nodes:
+            phase = self.signal_phases[node]
+            green_dir = "NS" if phase == self.config.simulation.phase_ns_green else "EW"
+            red_dir = "EW" if green_dir == "NS" else "NS"
+
+            # Green direction pedestrians cross safely (serve up to 2 per second)
+            q_green = self.pedestrian_queues[node][green_dir]
+            if q_green:
+                num_to_cross = min(2, len(q_green))
+                for _ in range(num_to_cross):
+                    ped = q_green.pop(0)
+                    ped.completed = True
+                    ped.exit_tick = self.current_tick
+                    self.completed_pedestrians.append(ped)
+
+            # Red direction pedestrians accumulate wait
+            for ped in self.pedestrian_queues[node][red_dir]:
+                ped.waiting_ticks += 1
+
     def step(self, signal_phases: Optional[Dict[int, int]] = None) -> Dict[str, object]:
         """Advances the simulation by 1 second (1 tick).
         
@@ -238,9 +381,11 @@ class TrafficSimulator:
             self.set_signal_phases(signal_phases)
 
         self._generate_boundary_arrivals()
+        self._generate_pedestrian_arrivals()
         discharged = self._discharge_queues()
         self._advance_in_transit()
         self._accumulate_waiting_times()
+        self._service_pedestrians()
 
         # Record metrics for current tick
         self.throughput_history.append(discharged)
@@ -272,4 +417,28 @@ class TrafficSimulator:
         for node_queues in self.queues.values():
             for q in node_queues.values():
                 all_waits.extend(v.waiting_ticks for v in q)
+        return (sum(all_waits) / len(all_waits)) if all_waits else 0.0
+
+    def get_pedestrian_counts(self, node_id: int) -> Dict[str, int]:
+        """Returns number of waiting pedestrians for NS and EW crossings at node."""
+        return {
+            "NS": len(self.pedestrian_queues[node_id]["NS"]),
+            "EW": len(self.pedestrian_queues[node_id]["EW"]),
+        }
+
+    def get_pedestrian_max_wait(self, node_id: int) -> Dict[str, int]:
+        """Returns maximum wait in seconds for NS and EW pedestrians at node."""
+        ns_waits = [p.waiting_ticks for p in self.pedestrian_queues[node_id]["NS"]]
+        ew_waits = [p.waiting_ticks for p in self.pedestrian_queues[node_id]["EW"]]
+        return {
+            "NS": max(ns_waits) if ns_waits else 0,
+            "EW": max(ew_waits) if ew_waits else 0,
+        }
+
+    def get_average_pedestrian_wait_time(self) -> float:
+        """Calculates average waiting time across all served and waiting pedestrians."""
+        all_waits = [p.waiting_ticks for p in self.completed_pedestrians]
+        for node_queues in self.pedestrian_queues.values():
+            for q in node_queues.values():
+                all_waits.extend(p.waiting_ticks for p in q)
         return (sum(all_waits) / len(all_waits)) if all_waits else 0.0

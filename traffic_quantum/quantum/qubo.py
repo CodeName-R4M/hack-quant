@@ -111,6 +111,41 @@ class TrafficQUBOBuilder:
                         C0 += w_emerg
                         Q[node, node] -= w_emerg
 
+        # 5. Pedestrian demand and wait penalty:
+        w_ped = getattr(self.config.qubo, "w_pedestrian", 2.0)
+        max_ped_wait_sec = getattr(getattr(self.config, "pedestrian", None), "max_wait_sec", 45)
+        if hasattr(simulator, "get_pedestrian_counts"):
+            for i in range(self.n):
+                ped_counts = simulator.get_pedestrian_counts(i)
+                ped_ns = ped_counts.get("NS", 0)
+                ped_ew = ped_counts.get("EW", 0)
+
+                # Check if pedestrian max wait threshold exceeded -> add urgency bias
+                if hasattr(simulator, "get_pedestrian_max_wait"):
+                    max_waits = simulator.get_pedestrian_max_wait(i)
+                    if max_waits.get("NS", 0) >= max_ped_wait_sec:
+                        ped_ns += 20
+                    if max_waits.get("EW", 0) >= max_ped_wait_sec:
+                        ped_ew += 20
+
+                # NS green (x_i=0) serves NS peds. EW green (x_i=1) serves EW peds.
+                # Penalty: w_ped * [ ped_ew * (1 - x_i) + ped_ns * x_i ]
+                C0 += w_ped * ped_ew
+                Q[i, i] += w_ped * (ped_ns - ped_ew)
+
+        # 6. Switching penalty: cost for changing current phase (stabilizes phase flipping)
+        w_switch = getattr(self.config.qubo, "w_switch", 2.5)
+        if w_switch > 0 and hasattr(simulator, "signal_phases"):
+            for i in range(self.n):
+                current_phase = simulator.signal_phases.get(i, 0)
+                if current_phase == 0:
+                    # Current is NS (0). Switching to EW (1) costs w_switch * x_i
+                    Q[i, i] += w_switch
+                else:
+                    # Current is EW (1). Switching to NS (0) costs w_switch * (1 - x_i) = w_switch - w_switch * x_i
+                    C0 += w_switch
+                    Q[i, i] -= w_switch
+
         return Q, float(C0)
 
     @staticmethod
