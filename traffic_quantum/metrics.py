@@ -82,6 +82,7 @@ class MetricsEngine:
             "spillback_events": simulator.spillback_events_count,
             "avg_pedestrian_wait_sec": round(avg_ped_wait, 2),
             "completed_pedestrians": completed_peds,
+            "total_phase_switches": getattr(simulator, "total_phase_switches", 0),
         }
 
     def generate_comparison_table(

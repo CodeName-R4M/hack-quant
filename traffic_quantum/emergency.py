@@ -149,7 +149,7 @@ class EmergencyCorridorManager:
         self.active_missions.append(mission)
         return mission
 
-    def reroute_active_missions(self, simulator: TrafficSimulator) -> None:
+    def reroute_active_missions(self, simulator: TrafficSimulator, current_tick: Optional[int] = None) -> None:
         """Dynamically reroutes active ambulances around newly occurred accidents or road closures."""
         def dynamic_edge_weight(u: int, v: int, d: Dict) -> float:
             if d.get("status") == "closed":
@@ -163,6 +163,8 @@ class EmergencyCorridorManager:
 
         for mission in self.active_missions:
             if mission.completed or mission.current_index >= len(mission.path) - 1:
+                continue
+            if current_tick is not None and current_tick < mission.dispatch_tick:
                 continue
 
             curr_node = mission.path[mission.current_index]
@@ -202,7 +204,7 @@ class EmergencyCorridorManager:
         Returns:
             Dict mapping intersection_id to required phase direction ('NS' or 'EW').
         """
-        self.reroute_active_missions(simulator)
+        self.reroute_active_missions(simulator, current_tick)
 
         speed_mult = self.config.emergency.speed_multiplier
         eta_threshold = self.config.emergency.eta_threshold_sec
@@ -210,7 +212,7 @@ class EmergencyCorridorManager:
 
         # 1. Update physical progression of each ambulance
         for mission in list(self.active_missions):
-            if mission.completed:
+            if mission.completed or current_tick < mission.dispatch_tick:
                 continue
 
             if mission.current_index >= len(mission.path) - 1:
@@ -293,7 +295,11 @@ class EmergencyCorridorManager:
         candidate_biases: Dict[int, List[Tuple[float, int, str, int]]] = {}
 
         for mission in self.active_missions:
-            if mission.completed or mission.current_index >= len(mission.path) - 1:
+            if (
+                mission.completed
+                or mission.current_index >= len(mission.path) - 1
+                or current_tick < mission.dispatch_tick
+            ):
                 continue
 
             u = mission.path[mission.current_index]

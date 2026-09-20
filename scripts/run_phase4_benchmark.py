@@ -154,15 +154,18 @@ def run_single_trial(
     else:
         raise ValueError(f"Unknown controller type: {ctrl_type}")
 
-    # Dispatch ambulance at tick=15 from 0 to 5
-    amb_mission = em_mgr.dispatch_ambulance(origin=0, destination=5, simulator=sim, current_tick=15)
+    amb_mission = None
+    dispatch_tick = 120
 
     total_switches = 0
     prev_phases: Optional[Dict[int, int]] = None
 
     for tick in range(duration):
+        if tick == dispatch_tick:
+            amb_mission = em_mgr.dispatch_ambulance(origin=0, destination=5, simulator=sim, current_tick=dispatch_tick)
+
         evt_mgr.step(tick, sim, em_mgr)
-        biases = em_mgr.update_and_get_biases(tick, sim)
+        biases = em_mgr.update_and_get_biases(tick, sim) if amb_mission is not None else {}
         if isinstance(ctrl, HybridController):
             phases = ctrl.get_phases(tick, sim, emergency_biases=biases)
         else:
@@ -179,7 +182,7 @@ def run_single_trial(
     amb_time = (
         (amb_mission.arrival_tick - amb_mission.dispatch_tick)
         if (amb_mission and amb_mission.arrival_tick)
-        else float(duration)
+        else float(duration - dispatch_tick)
     )
 
     qaoa_ratios = []

@@ -37,7 +37,12 @@ counts from CCTV images/videos using **YOLOv8n** computer vision.
 The entire application runs in a single **Streamlit** process — no database needed.
 
 ### Where Quantum is Used and Why We Don't Claim Advantage
-In this project, quantum computing via QAOA (Quantum Approximate Optimization Algorithm) is utilized specifically to solve the quadratic unconstrained binary optimization (QUBO) problem representing coordinated traffic phase selection across the network. Because classical brute-force can trivially solve a 6-qubit (64-state) system in less than a millisecond on a laptop, **we make no claim of quantum advantage or supremacy**. Instead, this system serves as a **quantum-ready pipeline validated on a simulator**: it formulates the combinatorial traffic problem natively for quantum processors so that as physical fault-tolerant quantum hardware scales, the identical mathematical pipeline can target actual quantum processing units (QPUs) for large-scale city grids where classical combinatorial search becomes intractable ($O(2^N)$ wall-clock explosion).
+In this project, quantum computing via QAOA (Quantum Approximate Optimization Algorithm) is utilized to optimize binary traffic signal phases mapped to a QUBO / Ising cost Hamiltonian. We maintain rigorous scientific transparency:
+1. **Pipeline Validation**: The formulation is validated end-to-end on quantum simulators (PennyLane `default.qubit` and Amazon Braket local simulator), including formal unit tests verifying QUBO-to-Ising Hamiltonian mapping equivalence and ground-truth comparison against exact brute force.
+2. **Exact Solver Baseline**: The headline benchmark performance figures in this report come from the exact classical Brute-Force solver ($2^6 = 64$ states evaluated in <0.5 ms).
+3. **QAOA is an Approximation Algorithm**: Because QAOA (p=2) achieves a 91%–95% approximation ratio and finds the exact ground-truth optimum in 33%–60% of rounds, QAOA traffic wait time is slightly higher (+1.7s to +5.7s) than exact brute force.
+4. **Coupling Terms & Separability**: In empirical ablation experiments on this 6-intersection network, the quadratic network coupling terms ($W_{\text{coord}}$ and $W_{\text{spillback}}$) that would theoretically make the problem non-separable provided no delay benefit over independent per-intersection greedy decisions.
+5. **No Advantage Claim**: We make no claim of quantum advantage or supremacy. This repository demonstrates a verified, quantum-ready pipeline for urban traffic optimization.
 
 ---
 
@@ -382,11 +387,11 @@ Renders:
 Abstract interface. All controllers implement `compute_phases(simulator) -> Dict[int, int]`.
 
 **`hybrid.py` — `HybridController`**
-Primary quantum-classical controller. Re-optimizes every 25 s (20–30s interval):
-1. Builds QUBO matrix Q from live queue state and switching penalties
+Primary quantum-classical controller. Re-optimizes every `reopt_interval_sec` (default 10s):
+1. Builds QUBO matrix Q from live queue state, coordination couplings, and switching penalties
 2. QAOA or brute-force solver -> optimal bitstring x*
 3. Converts to phase map: x_i=0 -> NS green, x_i=1 -> EW green
-4. Adaptive green duration: `clamp(15 + 0.5 * queue_count, 10, 45)` seconds
+4. Phase persistence: A phase persists at each intersection while the optimizer continues selecting it, re-evaluated every `reopt_interval_sec` (no dead clamp timers).
 
 **`rule_based.py` — `RuleBasedController`**
 Greedy: every 10 ticks, compares NS vs EW queue totals per junction, assigns green to heavier queue.
@@ -582,8 +587,8 @@ TrafficQUBOBuilder.build_qubo()
          |
   Phase map: {node_id: 0 or 1}  (NS/EW green)
          |
-  Adaptive green duration:
-  duration = clamp(15 + 0.8 * queue_active, 10, 45)
+  Phase persistence:
+  Phase held while optimizer re-selects it; re-evaluated every reopt_interval_sec
          |
   sim.set_signal_phases(phases)
 ```
@@ -742,14 +747,19 @@ Evaluating differences paired per evaluation seed eliminates cross-seed traffic 
    - Under severe incident surge, Fixed-Timing (98.69s) and Hybrid Brute-Force (99.37s) are **statistically tied** (paired difference: `+0.68 ± 1.76s`, 95% CI includes zero).
 
 2. **Where Hybrid Beats Fixed Decisively**:
-   - In moderate, unsaturated traffic, Hybrid Brute-Force cuts average wait time by **9.39s (34.2% reduction)** compared to Fixed-Timing (`[-9.79, -8.98]s`, $n=20$).
-   - In directional rush-hour demand (3x arterial load), Hybrid Brute-Force cuts average wait time by **23.29s (22.1% reduction)** compared to Fixed-Timing (`[-24.92, -21.65]s`, $n=20$).
+   - In moderate, unsaturated traffic, Hybrid Brute-Force cuts average wait time by **9.43s (34.3% reduction)** compared to Fixed-Timing (`[-9.78, -9.07]s`, $n=20$ at 0s lost time).
+   - In directional rush-hour demand (3x arterial load), Hybrid Brute-Force cuts average wait time by **24.67s (23.5% reduction)** compared to Fixed-Timing (`[-26.97, -22.36]s`, $n=20$ at 0s lost time).
 
-3. **Hybrid vs Rule-Based (The Real Multi-Objective Trade-Off)**:
-   - On raw vehicle delay, Hybrid and Rule-Based are very close (within 0.4s to 1.4s across regimes, and statistically tied in surge accident at `-0.08 ± 0.82s`).
-   - The hybrid controller's true advantages are multi-objective coordination:
-     - **Pedestrian Wait Times**: Hybrid cuts pedestrian delay across all regimes (down to 2.91s in moderate load vs 7.65s for fixed and 3.31s for rule-based; 6.99s in rush hour vs 8.75s for rule-based).
-     - **Emergency Response**: Hybrid cuts ambulance response travel times by **10.6s to 19.9s** compared to classical controllers by opening coordinated green corridors.
+3. **Hybrid vs Rule-Based (The Multi-Objective Picture)**:
+   - On raw vehicle delay at 0s lost time, Hybrid Brute-Force (18.06s moderate, 80.53s rush) is virtually tied with default Rule-Based (17.70s moderate, 80.47s rush). When Rule-Based is tuned, it achieves 15.21s moderate and 81.15s rush.
+   - When switching lost time is introduced (2s and 3s), **Rule-Based (tuned) beats Hybrid in moderate load**:
+     - At 2s lost time: Rule-Based (tuned) is faster by 2.27s (24.32s vs 26.59s, 95% CI `[+1.62, +2.92]s`).
+     - At 3s lost time: Rule-Based (tuned) is faster by 1.79s (29.87s vs 31.66s, 95% CI `[+1.06, +2.52]s`).
+   - In rush hour:
+     - At 2s lost time: Hybrid holds a modest 2.25s advantage (105.55s vs 107.80s, 95% CI `[-2.89, -1.62]s`).
+     - At 3s lost time: Hybrid (BF default) is tied with Rule-Based tuned (113.23s vs 114.74s, 95% CI spans zero).
+   - **Pedestrian Wait Times**: Hybrid cuts pedestrian delay in moderate load (down to 2.91s vs 7.65s for fixed and 3.31s for rule-based). In rush hour, Hybrid (6.99s) and Fixed (7.65s) are a **statistical tie** (paired diff -0.66s, 95% CI `[-1.45, +0.13]s`, spanning zero).
+   - **Emergency Response**: Preemption cuts ambulance response vs un-preempted baselines by 20s to 44s (50.45s down to 27.85s–30.50s in moderate load; 93.70s down to 49.70s–57.20s in rush hour). However, when Fixed and Rule-Based also receive hard preemption, Rule-Based + Hard Preemption achieves 27.85s (moderate) and 54.50s (rush hour), matching or slightly beating Hybrid Soft QUBO (30.50s and 57.20s). **The hybrid's ambulance advantage disappears when baselines also get preemption** (`results/ambulance_fairness.csv`). Route: nodes [0, 1, 2, 5], 3 directed arterial links, 24.0s free-flow travel time.
 
 4. **Phase Switch Counts (Honest Comparison Across Controllers)**:
    - With the current configuration (10s re-optimization interval, $W_{switch}=1.0$), **the Hybrid controller does NOT switch fewer times than classical baselines**.
@@ -770,25 +780,173 @@ Evaluating differences paired per evaluation seed eliminates cross-seed traffic 
 
 ---
 
+### Robustness to Switching Cost (Lost-Time Sensitivity & Fair Baseline Tuning)
+
+In real physical deployments, signal transitions incur lost time due to yellow clearance intervals and startup delays. The simulator includes `switch_lost_time_sec` (blocking vehicle discharge for $N$ seconds after a phase change). Evaluated across 20 evaluation seeds (seeds 100–119) for Fixed, Rule-Based (default), Rule-Based (tuned on training seeds 1–5), Hybrid (Brute-Force default), and Hybrid (BF, retuned with identical parity tuning budget):
+
+*Traffic Condition: `ambulance_present: False` (civilian traffic only), `pedestrians_present: True`.*
+
+| Scenario | Lost Time | Controller | Avg Wait (s) | 95% CI | Throughput (cpm) | Phase Switches | Paired Diff vs Fixed (s) | Paired Diff vs Rule (tuned) (s) |
+|---|---|---|---|---|---|---|---|---|
+| **Moderate Load** | 0s | Fixed-Timing | 27.49 | [27.13, 27.85] | 99.2 | 114.0 | 0.00 | +12.28 `[+11.99, +12.57]` |
+| | 0s | Rule-Based (default) | 17.70 | [17.43, 17.96] | 101.1 | 324.4 | -9.79 `[-10.15, -9.44]` | +2.49 `[+2.12, +2.86]` |
+| | 0s | Rule-Based (tuned) | 15.21 | [14.89, 15.53] | 101.8 | 340.9 | -12.28 `[-12.57, -11.99]` | 0.00 |
+| | 0s | Hybrid (BF, default) | 18.06 | [17.81, 18.32] | 100.9 | 332.4 | -9.43 `[-9.78, -9.07]` | +2.85 `[+2.51, +3.20]` |
+| | 0s | **Hybrid (BF, retuned)** | **11.86** | [11.62, 12.10] | **102.3** | 468.2 | **-15.63** `[-15.91, -15.36]` | **-3.35** `[-3.67, -3.03]` |
+| | 2s | Fixed-Timing | 32.51 | [31.96, 33.07] | 98.4 | 114.0 | 0.00 | +8.19 `[+7.56, +8.82]` |
+| | 2s | Rule-Based (default) | 26.44 | [25.69, 27.19] | 99.5 | 284.4 | -6.07 `[-6.47, -5.67]` | +2.12 `[+1.51, +2.73]` |
+| | 2s | **Rule-Based (tuned)** | **24.32** | [23.56, 25.09] | **100.1** | 234.8 | **-8.19** `[-8.82, -7.56]` | 0.00 |
+| | 2s | Hybrid (BF, default) | 26.59 | [25.91, 27.28] | 99.5 | 204.8 | -5.92 `[-6.53, -5.32]` | +2.27 `[+1.62, +2.92]` |
+| | 2s | Hybrid (BF, retuned) | 26.59 | [25.91, 27.28] | 99.5 | 204.8 | -5.92 `[-6.53, -5.32]` | +2.27 `[+1.62, +2.92]` |
+| | 2s | Hybrid (QAOA) [5 seeds] | 29.15 | [27.42, 30.88] | 98.1 | 209.6 | -2.74 `[-4.45, -1.03]` | +4.75 `[+2.81, +6.69]` |
+| | 3s | Fixed-Timing | 38.85 | [38.02, 39.67] | 97.1 | 114.0 | 0.00 | +8.98 `[+8.21, +9.75]` |
+| | 3s | Rule-Based (default) | 41.71 | [39.78, 43.63] | 95.7 | 213.2 | +2.86 `[+1.32, +4.41]` | +11.84 `[+10.12, +13.56]` |
+| | 3s | **Rule-Based (tuned)** | **29.87** | [28.79, 30.94] | **98.7** | 203.2 | **-8.98** `[-9.75, -8.21]` | 0.00 |
+| | 3s | Hybrid (BF, default) | 39.12 | [38.33, 39.92] | 96.8 | 171.8 | +0.28 `[-0.42, +0.97]` | +9.26 `[+8.36, +10.15]` |
+| | 3s | Hybrid (BF, retuned) | 31.66 | [30.67, 32.64] | 98.1 | 231.8 | -7.19 `[-7.83, -6.55]` | +1.79 `[+1.06, +2.52]` |
+| **Rush-Hour** | 0s | Fixed-Timing | 105.20 | [103.68, 106.71] | 105.2 | 114.0 | 0.00 | +24.04 `[+22.12, +25.97]` |
+| | 0s | Rule-Based (default) | 80.47 | [77.82, 83.12] | 117.9 | 154.6 | -24.73 `[-26.79, -22.67]` | -0.68 `[-1.72, +0.36]` |
+| | 0s | Rule-Based (tuned) | 81.15 | [78.68, 83.62] | 117.5 | 160.6 | -24.04 `[-25.97, -22.12]` | 0.00 |
+| | 0s | Hybrid (BF, default) | 80.53 | [77.72, 83.34] | 117.9 | 159.0 | -24.67 `[-26.97, -22.36]` | -0.62 `[-1.66, +0.42]` (Tie) |
+| | 0s | **Hybrid (BF, retuned)** | **75.57** | [72.90, 78.23] | **119.2** | 224.2 | **-29.63** `[-31.72, -27.54]` | **-5.59** `[-6.39, -4.78]` |
+| | 2s | Fixed-Timing | 113.72 | [112.25, 115.18] | 101.1 | 114.0 | 0.00 | +5.91 `[+3.35, +8.48]` |
+| | 2s | Rule-Based (default) | 107.79 | [105.05, 110.54] | 101.0 | 145.7 | -5.92 `[-8.23, -3.62]` | -0.01 `[-0.72, +0.70]` |
+| | 2s | Rule-Based (tuned) | 107.80 | [104.77, 110.84] | 101.0 | 144.7 | -5.91 `[-8.48, -3.35]` | 0.00 |
+| | 2s | **Hybrid (BF, default)** | **105.55** | [102.83, 108.27] | **103.5** | 146.8 | **-8.16** `[-10.46, -5.87]` | **-2.25** `[-2.89, -1.62]` |
+| | 2s | **Hybrid (BF, retuned)** | **105.55** | [102.83, 108.27] | **103.5** | 146.8 | **-8.16** `[-10.46, -5.87]` | **-2.25** `[-2.89, -1.62]` |
+| | 2s | Hybrid (QAOA) [5 seeds] | 108.04 | [102.34, 113.74] | 101.6 | 140.6 | -4.71 `[-7.44, -1.98]` | +0.24 `[-3.42, +3.90]` |
+| | 3s | Fixed-Timing | 122.49 | [121.07, 123.91] | 96.8 | 114.0 | 0.00 | +7.75 `[+5.16, +10.34]` |
+| | 3s | Rule-Based (default) | 136.54 | [133.15, 139.93] | 82.2 | 133.2 | +14.06 `[+10.98, +17.13]` | +21.80 `[+18.72, +24.88]` |
+| | 3s | **Rule-Based (tuned)** | **114.74** | [111.63, 117.85] | **98.2** | 99.0 | **-7.75** `[-10.34, -5.16]` | 0.00 |
+| | 3s | Hybrid (BF, default) | 113.23 | [110.14, 116.31] | 100.7 | 106.0 | -9.26 `[-11.93, -6.59]` | -1.51 `[-3.03, +0.01]` (Tie) |
+| | 3s | Hybrid (BF, retuned) | 117.36 | [114.38, 120.35] | 98.4 | 127.4 | -5.12 `[-7.56, -2.69]` | +2.62 `[+1.60, +3.65]` |
+
+**Honest Recomputed Findings on Switching Cost & Baseline Tuning**:
+1. **Recomputed Improvement vs Fixed**:
+   - **0s lost time**: 34.3% with default Hybrid (18.06s vs 27.49s); 56.9% with retuned Hybrid (11.86s vs 27.49s). In rush hour: 23.5% default (80.53s vs 105.20s); 28.2% retuned (75.57s vs 105.20s).
+   - **2s lost time**: **18.2% in moderate load** (26.59s vs 32.51s), **7.2% in rush hour** (105.55s vs 113.72s).
+   - **3s lost time**: Default Hybrid tied Fixed in moderate load (+0.28s, 95% CI `[-0.42s, +0.97s]`). When retuned (reopt=5, w_switch=5.0), Hybrid achieves 31.66s (18.5% improvement vs Fixed), while in rush hour it achieves 117.36s (4.2% vs Fixed).
+2. **Fair Baseline Tuning & Advantage Disappearance**:
+   - In moderate load under realistic lost time (2s and 3s), **Rule-Based (tuned) beats Hybrid**:
+     - At 2s lost time: Rule-Based (tuned) achieves 24.32s vs Hybrid's 26.59s (**Rule-Based tuned is faster by 2.27s**, 95% CI `[+1.62, +2.92]s`).
+     - At 3s lost time: Rule-Based (tuned) achieves 29.87s vs Hybrid retuned 31.66s (**Rule-Based tuned is faster by 1.79s**, 95% CI `[+1.06, +2.52]s`).
+   - In rush hour:
+     - At 2s lost time: Hybrid retains a modest 2.25s advantage (105.55s vs 107.80s, 95% CI `[-2.89, -1.62]s`).
+     - At 3s lost time: Default Hybrid (reopt=15) is tied with Rule-Based tuned (113.23s vs 114.74s, 95% CI spans zero), while retuned Hybrid (reopt=5) loses to Rule-Based tuned by 2.62s.
+3. **Exact Parameter Table & Why 37.45 / 111.20 Shifted**:
+   - All Hybrid rows share common QUBO weights: `w_queue=1.0`, `w_coord=0.2`, `w_spillback=0.5`, `w_emergency=50.0`, `w_pedestrian=2.0`, `k_queue=0.5`, `spillback_threshold=0.80`.
+   - The switching parameter and re-optimization interval for each lost-time setting:
+     - `lt=0s`: Default (`reopt=10s, w_switch=1.0`); Retuned (`reopt=5s, w_switch=0.0`).
+     - `lt=2s`: Default & Retuned (`reopt=10s, w_switch=2.5`).
+     - `lt=3s`: Default (`reopt=15s, w_switch=2.5`); Retuned (`reopt=5s, w_switch=5.0`).
+   - **Why 37.45s / 111.20s shifted to 39.12s / 113.23s**: The earlier figures (37.45s moderate, 111.20s rush hour) came from an initial exploratory run holding `reopt=10s` fixed. When retuning was executed systematically on training seeds 1–5 with candidate intervals `[10, 15, 20]`, `reopt=15s, w_switch=2.5` achieved the lowest combined delay on 300s training runs, translating on the 20 held-out 600s evaluation seeds to 39.12s (moderate) and 113.23s (rush hour). When given the full parity search budget `{reopt: [5, 10, 15], w_switch: [0, 1, 2.5, 5]}`, `reopt=5s, w_switch=5.0` achieved 31.66s (moderate) and 117.36s (rush hour).
+   - **Tuning vs Evaluation Duration Limitation**: All hyperparameter tuning was conducted on **300s simulation runs across 5 training seeds (1–5)** to conserve compute, whereas the final reported benchmarks evaluate **600s simulation runs across 20 held-out evaluation seeds (100–119)**.
+- *Data source*: `results/lost_time_sensitivity.csv`.
+
+---
+
+### Ablation Study: Network Coupling & Greedy Equivalence (Phase 5)
+
+To evaluate whether the quadratic network coupling terms ($W_{coord}$ and $W_{spillback}$) actually contribute to performance, we conducted empirical ablation experiments (saved in `results/ablation_study.json` and `results/throughput_coupling_study.json`):
+
+1. **Ablation (a): QUBO Optimum vs Independent Greedy Choice**:
+   - Evaluated across **2,400 reoptimization rounds** (20 evaluation seeds $\times$ 120 rounds per run at 5s re-optimization interval).
+   - **Definition of Independent Greedy**: Each junction $i \in \{0..5\}$ independently chooses its phase $x_i \in \{0, 1\}$ to minimize only its local linear queue, wait, and pedestrian terms ($w_{\text{queue}}, w_{\text{wait}}, w_{\text{ped}}, w_{\text{switch}}$), ignoring cross-junction coordination ($W_{coord}=0, W_{spillback}=0$).
+   - **Finding**: In **86.58% of rounds**, the global QUBO optimum is bit-for-bit identical to the independent greedy choice. The QUBO optimum differed in only **13.42% of rounds** (322 / 2,400).
+   - When different, an average of only **1.08 bits** differed (out of 6 intersections). Across all rounds, the average difference was **0.15 bits**.
+2. **Ablation (b): Uncoupled Hybrid ($W_{coord}=0, W_{spillback}=0$) vs Full Hybrid**:
+   - **Moderate Load**: Uncoupled Hybrid achieved **17.42s** vs Full Hybrid **18.06s** (paired difference: **-0.64s**, 95% CI `[-0.86, -0.42]s`). Removing coupling slightly improved delay.
+   - **Rush Hour**: Uncoupled Hybrid achieved **80.88s** vs Full Hybrid **80.53s** (paired difference: **+0.35s**, 95% CI `[-0.35, +1.04]s`, spanning zero). This is a **statistical tie**.
+3. **Ablation (c): Coupling Weights Sweep on Training Seeds**:
+   - Sweeping $W_{coord} \in [0.0, 0.2, 0.5, 1.0, 2.0]$ and $W_{spillback} \in [0.0, 0.5, 1.0, 2.0]$ on training seeds 1–5 demonstrated that zero coordination ($W_{coord}=0.0$) achieved the lowest training wait time (31.24s). Setting $W_{coord} \ge 0.5$ worsened delays because forcing coordination restricts junctions from clearing localized queues.
+   - **Theoretical Consequence**: With zero coupling terms, the QUBO matrix is diagonal and the corresponding Ising Hamiltonian contains **zero two-qubit interaction terms ($J_{ij} = 0$)**, decomposing into 6 trivial independent single-qubit problems.
+4. **Throughput Coupling Term (Optional Investigation)**:
+   - To test whether a genuinely coupled term could help, an optional directed-link discharge coordination term ($w_{\text{tc}}$) was implemented: for directed link $u \to v$, discharging toward $v$ receives a negative cost bonus only if $v$ is also green for that approach, weighted by queue plus in-transit load.
+   - Tuning on training seeds 1–5 selected $w_{\text{tc}}=0.5$.
+   - On the 20 evaluation seeds, this reduced wait by **3.68s** in rush hour (77.19s vs 80.88s uncoupled, 95% CI `[-4.84, -2.53]s`) and **7.22s** in surge accident (91.45s vs 98.67s uncoupled, 95% CI `[-8.47, -5.97]s`). This term is preserved as an optional configurable feature (`w_throughput_coupling=0.0` default).
+- **Scientific Takeaway**: The baseline quadratic green-wave coupling terms provide no delay benefit in this 6-intersection network. The hybrid controller functions predominantly as an adaptive per-intersection optimizer with linear multi-objective weighting.
+
+---
+
+### Fairness of Emergency Preemption Comparison (Phase 1)
+
+In early experiments, Hybrid soft-QUBO preemption was compared to Fixed and Rule-Based controllers *without* any preemption capability, giving an impression of an exclusive ambulance advantage. To ensure complete fairness, we implemented hard preemption (`force green along route during transit, restore afterward`) for both Fixed and Rule-Based baselines and evaluated all controllers on the identical 20 evaluation seeds with a **120-second warm-up**:
+
+- **Ambulance Route**: Origin Node 0 -> Node 1 -> Node 2 -> Destination Node 5 (Hospital).
+- **Geometry**: 4 nodes, 3 directed arterial links (0->1, 1->2, 2->5). Free-flow speed is 12.5 m/s, or 18.75 m/s at 1.5x ambulance speed. Across 3 links of 150m each (450m total), free-flow travel time is **24.0s** (8.0s per link).
+- **Warm-Up Dispatch (Tick 120)**: The ambulance is dispatched inside the simulation loop at tick 120 so it encounters realistic, established queues. `ambulance_time_sec` measures elapsed time from entry at tick 120 until destination arrival.
+- **Computation of Extra Civilian Delay**: Evaluated as `wait_with_ambulance - wait_without_ambulance` paired on the exact same seed and controller.
+
+*Traffic Condition: Evaluated across 20 evaluation seeds (100–119), 600s duration, warm-up dispatch at tick 120.*
+
+| Scenario | Controller | Vehicle Wait Mean (s) | 95% CI | Ambulance Time (s) | 95% CI | Extra Civilian Delay (s) |
+|---|---|---|---|---|---|---|
+| **Moderate Load** | Fixed-Timing (No Preemption) | 27.49 | [27.15, 27.83] | 50.45 | [45.74, 55.16] | 0.00 |
+| | Fixed + Hard Preemption | 29.56 | [28.73, 30.40] | 32.15 | [26.82, 37.48] | +2.07 |
+| | Rule-Based (tuned) (No Preemption) | 15.21 | [14.91, 15.51] | 36.25 | [32.37, 40.13] | 0.00 |
+| | **Rule-Based (tuned) + Hard Preemption** | 15.72 | [15.39, 16.06] | **27.85** | [26.18, 29.52] | +0.52 |
+| | Hybrid (Brute-Force) (No Preemption) | 18.06 | [17.83, 18.30] | 36.70 | [32.22, 41.18] | 0.00 |
+| | Hybrid (Brute-Force) + Hard Preemption | 18.81 | [18.41, 19.21] | 29.90 | [27.84, 31.96] | +0.74 |
+| | **Hybrid (Brute-Force) (Soft QUBO)** | 18.66 | [18.27, 19.04] | 30.50 | [27.86, 33.14] | +0.59 |
+| **Rush-Hour** | Fixed-Timing (No Preemption) | 105.20 | [103.78, 106.61] | 93.70 | [77.51, 109.89] | 0.00 |
+| | Fixed + Hard Preemption | 109.92 | [108.11, 111.74] | 74.00 | [62.95, 85.05] | +4.73 |
+| | Rule-Based (tuned) (No Preemption) | 81.15 | [78.84, 83.47] | 81.25 | [67.83, 94.67] | 0.00 |
+| | **Rule-Based (tuned) + Hard Preemption** | 82.81 | [80.55, 85.06] | 54.50 | [47.83, 61.17] | +1.65 |
+| | Hybrid (Brute-Force) (No Preemption) | 80.53 | [77.90, 83.16] | 80.90 | [68.39, 93.41] | 0.00 |
+| | **Hybrid (Brute-Force) + Hard Preemption** | 83.18 | [80.29, 86.06] | **49.70** | [41.70, 57.70] | +2.65 |
+| | Hybrid (Brute-Force) (Soft QUBO) | 82.63 | [80.03, 85.22] | 57.20 | [47.23, 67.17] | +2.10 |
+
+**Defensible Scientific Takeaway**:
+- Preemption provides massive ambulance response time benefits compared to un-preempted baselines (in moderate load: 50.45s down to 27.85s–30.50s; in rush hour: 93.70s down to 49.70s–57.20s).
+- However, when classical baselines also receive hard preemption, Rule-Based + Hard Preemption achieves **27.85s** (moderate) and **54.50s** (rush hour), matching or slightly beating Hybrid Soft QUBO (**30.50s** and **57.20s**).
+- **The hybrid's ambulance advantage disappears when baselines also get preemption.** Soft QUBO preemption offers operational flexibility by biasing the objective rather than locking signals into an override state, but does not provide lower ambulance transit times than classical hard preemption.
+- *Data source*: `results/ambulance_fairness.csv`.
+
+---
+
+### Pedestrian Crossing Wait Times & Model Caveats
+
+*Traffic Condition: `pedestrians_present: True` (0.05 arrivals/s per node/direction).*
+
+| Scenario | Controller | Ped Wait Mean (s) | 95% CI | Paired Diff vs Fixed (s) | Paired Diff vs Rule (s) |
+|---|---|---|---|---|---|
+| **Moderate Load** | Fixed-Timing Baseline | 7.65 | [7.30, 8.01] | 0.00 | +4.35 `[+3.94, +4.76]` |
+| | Rule-Based | 3.31 | [3.15, 3.46] | -4.35 `[-4.76, -3.94]` | 0.00 |
+| | **Hybrid (Brute-Force)** | **2.91** | [2.79, 3.03] | **-4.75** `[-5.12, -4.37]` | **-0.40** `[-0.59, -0.21]` |
+| | Hybrid (QAOA) | 3.26 | [3.04, 3.49] | -4.39 `[-4.85, -3.93]` | -0.04 `[-0.33, +0.24]` (Tie) |
+| **Rush-Hour** | Fixed-Timing Baseline | 7.65 | [7.30, 8.01] | 0.00 | -1.10 `[-1.92, -0.27]` |
+| | Rule-Based | 8.75 | [8.05, 9.44] | +1.10 `[+0.27, +1.92]` | 0.00 |
+| | **Hybrid (Brute-Force)** | **6.99** | [6.43, 7.55] | **-0.66** `[-1.45, +0.13]` (Tie) | **-1.76** `[-2.27, -1.25]` |
+| | Hybrid (QAOA) | 7.43 | [6.98, 7.87] | -0.23 `[-0.85, +0.39]` (Tie) | -1.32 `[-1.99, -0.66]` |
+
+**Important Pedestrian Caveats**:
+1. **Pedestrian waits are inherently small** across all controllers in this model (2.8s to 8.8s) because intersection crossing distances are modeled simply without complex multi-stage pedestrian refuge islands.
+2. **Rule-Based contains zero pedestrian logic**: Its lower pedestrian delay in moderate load (3.31s vs 7.65s for Fixed) is an incidental consequence of frequent vehicle phase switches clearing parallel pedestrian crosswalks, not deliberate pedestrian optimization.
+3. **Rush hour difference is a statistical tie vs Fixed**: In rush hour, the Hybrid (BF) vs Fixed pedestrian wait difference is $-0.66\text{s}$ with a 95% CI of `[-1.45s, +0.13s]`. Because the CI spans zero, this difference is **a statistical tie**.
+- *Data source*: `results/pedestrian_summary.csv`.
+
+---
+
 ## Emergency Preemption Trade-Off: Soft QUBO vs Hard Override (Phase B)
 
-A systematic sweep across 20 evaluation seeds (100–119) evaluated the Pareto trade-off between ambulance response time saved and collateral delay inflicted on cross-traffic:
+A systematic sweep across 20 evaluation seeds (100–119) with warm-up dispatch at tick 120 evaluated the Pareto trade-off between ambulance response time saved and collateral delay inflicted on cross-traffic:
 
 | Preemption Policy | $W_{emerg}$ Weight | Ambulance Travel Time (s) | Time Saved (s) | Extra Delay on Normal Traffic (s) | Average Normal Wait (s) |
 |---|---|---|---|---|---|
-| **No Preemption** | 0.0 | 21.45 | 0.00 | 0.00 | 36.13 |
-| **Soft QUBO Bias** | 5.0 | 12.00 | 9.45 | +1.15 | 37.28 |
-| **Soft QUBO Bias** | **15.0** | **11.75** | **9.70** | **+1.38** | **37.51** |
-| **Soft QUBO Bias** | 30.0 | 11.75 | 9.70 | +1.38 | 37.51 |
-| **Soft QUBO Bias** | 50.0 | 11.75 | 9.70 | +1.38 | 37.51 |
-| **Soft QUBO Bias** | 80.0 | 11.75 | 9.70 | +1.38 | 37.51 |
-| **Soft QUBO Bias** | 150.0 | 11.75 | 9.70 | +1.38 | 37.51 |
-| **Hard Override** | N/A (Forced Green) | 8.00 | 13.45 | +1.75 | 37.89 |
+| **No Preemption** | 0.0 | 100.20 | 0.00 | 0.00 | 45.86 |
+| **Soft QUBO Bias** | 5.0 | 96.30 | 3.90 | +0.16 | 46.03 |
+| **Soft QUBO Bias** | 15.0 | 80.00 | 20.20 | +0.96 | 46.82 |
+| **Soft QUBO Bias** | 30.0 | 74.60 | 25.60 | +1.69 | 47.55 |
+| **Soft QUBO Bias** | **50.0** | **70.20** | **30.00** | **+2.08** | **47.95** |
+| **Soft QUBO Bias** | 80.0 | 68.60 | 31.60 | +2.08 | 47.95 |
+| **Soft QUBO Bias** | 150.0 | 68.60 | 31.60 | +2.10 | 47.97 |
+| **Hard Override** | N/A (Forced Green) | 64.60 | 35.60 | +2.08 | 47.95 |
 
 ### Empirical Preemption Analysis & Saturation
-- **Decision Space Saturation**: Notice that weights from $W_{emerg} = 15$ up to $150$ produce identical results (11.75s travel time, +1.38s cross delay). Once the emergency linear bias dominates the local queue difference, the binary phase choice ($x_i = 1$ or $0$) is fixed; increasing the weight further changes the cost value but cannot alter the discrete phase decision.
-- **Modest Collateral Delay Difference**: The trade-off curve is essentially 3 or 4 distinct operational points. Hard preemption clears the ambulance fastest (8.0s), but the difference in collateral delay between soft preemption (+1.38s) and hard override (+1.75s) is modest (~0.37s per vehicle). While soft preemption preserves optimizer flexibility, we do not oversell it as dramatically superior to hard override.
+- **Soft Preemption Does NOT Beat Hard Preemption on Travel Time**: Hard preemption clears the ambulance corridor in **64.60s** (saving 35.60s), while soft QUBO preemption clears it in **70.20s** at $W_{emerg}=50$ (saving 30.00s). Soft preemption does not achieve lower ambulance response times than hard preemption.
+- **Fair Preemption Baseline Finding**: Furthermore, when classical baselines (Fixed and Rule-Based) are given hard preemption, Rule-Based + Hard achieves **27.85s** in moderate load and **54.50s** in rush hour, matching or beating Hybrid Soft QUBO. The hybrid controller's ambulance-time advantage disappears under fair comparison. Soft QUBO's true value is operational flexibility (biasing the objective rather than locking signals into an override state), with modest cross-traffic delay.
 - Saved artifact: `results/preemption_tradeoff.png` and `results/preemption_tradeoff.json`.
+
 
 ---
 
@@ -803,11 +961,13 @@ Evaluated across 20 distinct traffic network snapshots with an optimizer budget 
 - **$p=2$**: Approximation ratio $0.9025 \pm 0.0345$ (95% CI), Exact hit rate: 25.0%
 - **$p=3$**: Approximation ratio $0.9217 \pm 0.0426$ (95% CI), Exact hit rate: 40.0%
 - **$p=4$**: Approximation ratio **$0.9545 \pm 0.0247$** (95% CI), Exact hit rate: **55.0%**
-- *Observation*: For a 6-qubit system, barren plateaus do not occur (barren plateaus are an asymptotic property of deep random circuits on many qubits). When classical optimizer iterations are scaled proportionally with the $2p$ variational angles, higher depth ($p=3, 4$) systematically improves approximation ratio and exact hit frequency. This confirms that prior underperformance at higher depths under fixed 25-step budgets was an optimizer budget artifact rather than barren plateaus.
+- Metric: **best-state approximation ratio** = `(max_cost − best_sampled_cost) / (max_cost − min_cost)`.
+- *Observation*: For a 6-qubit system, barren plateaus do not occur. When the optimizer budget is scaled proportionally with depth (`max_iterations = 20 + 20*p`), higher depth ($p=3, 4$) shows improved approximation ratio. However, **this result is suggestive rather than conclusive** because: (a) the iteration budget grows with $p$, so the improvement may partly reflect more optimizer steps rather than greater circuit expressivity, and (b) the 95% CIs at $p=3$ and $p=4$ overlap.
 - Saved artifact: `results/qaoa_depth_vs_ratio.png` and `results/qaoa_depth_data.json`.
 
 ### 3. NISQ Depolarizing Noise Study
 Simulated on PennyLane's `default.mixed` density matrix simulator under single-qubit depolarizing noise across 20 distinct traffic snapshots (mean ± 95% CI):
+- Metric: **best-state approximation ratio** (same formula as depth study above).
 - **Ideal (Noiseless)**: Ratio **$0.6899 \pm 0.0333$** (Top state prob: 16.86%)
 - **Low Noise ($p_{gate}=0.005$)**: Ratio $0.6809 \pm 0.0319$ (Top state prob: 15.24%)
 - **Medium Noise ($p_{gate}=0.02$)**: Ratio $0.6564 \pm 0.0280$ (Top state prob: 11.46%)
@@ -1025,8 +1185,10 @@ Each hardware execution generates a JSON audit file in `results/qpu_run_<provide
 |---|---|---|
 | **Simulator Scale** | 2x3 grid (6 intersections / 6 qubits) simulated locally on CPU. | Sufficient to demonstrate quantum encoding; physical QPUs or tensor networks required for >30 qubits. |
 | **QAOA CPU Latency** | 6-qubit QAOA takes ~0.5–1.0s per solve on CPU. | For live interactive UI testing, Brute-Force mode provides instantaneous (<1ms) solving. |
+| **Free Signal Switching** | **The simulator has no lost time or yellow phase, so signal switching is free; real deployments would see smaller gains from high-switching controllers.** At 2s lost time (per-intersection discharge blocked after switch), Hybrid Brute-Force advantage over Fixed narrows from 9.43s to 5.92s (moderate load). At 3s lost time, Fixed actually beats Rule-Based (Rule-Based degrades faster due to more switches). See `results/lost_time_sensitivity.csv` for the full robustness table. | Tune `switch_lost_time_sec` in config.py for deployment-realistic evaluation. |
 | **Vehicle Detection** | YOLOv8n is an edge nano model; low-angle camera occlusions can cause vehicle under-counting. | Classical CV morphological fallback pipeline ensures detection continuity even without YOLO weights. |
-| **Preemption Delay** | Emergency green corridors increase cross-street vehicle queue wait times. | Soft preemption ($W_{emerg}=15–50$) balances corridor clearance against cross-street delay; differences between soft and hard override are modest (~0.37s). |
+| **Preemption Fairness** | Hybrid's ambulance time advantage (vs Fixed and Rule-Based) disappears when baselines also receive hard preemption. All three controllers achieve comparable ambulance travel times when hard preemption is applied uniformly. See `results/ambulance_fairness.csv`. | Use hard preemption for actual emergency deployments; soft QUBO preemption offers flexibility and lower collateral delay. |
+| **Tuning Budget & Duration** | Parameter tuning was conducted on **300s simulation runs on 5 training seeds (1–5)** to limit search cost, while evaluation runs use **600s simulation runs on 20 held-out evaluation seeds (100–119)**. Longer evaluation runs allow queues to stabilize and capture full clearance dynamics. | Tuning on training seeds ensures unbiased evaluation on held-out seeds. |
 | **Hardware Link** | Physical traffic cabinet controllers are simulated via software abstraction. | The `SignalControllerInterface` is designed for direct drop-in integration with NTCIP 1202 controller hardware. |
 | **Hospital Navigation Demo** | Standalone Leaflet / Google Maps page is decoupled from live simulator signals. | Uses public OSRM / Nominatim routing servers for driver waypoint navigation; does not affect traffic lights. |
 

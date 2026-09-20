@@ -89,3 +89,42 @@ def test_ambulance_travel_time_benchmark():
         print(f"Ambulance Travel Time under {ctrl_name}: {travel_time}s")
 
     assert results["Hybrid-QAOA"] < 999
+
+
+def test_ambulance_does_not_advance_before_dispatch_tick():
+    """Verify that an ambulance mission does not advance or emit biases before its dispatch tick."""
+    network = RoadNetwork()
+    sim = TrafficSimulator(network=network, seed=42)
+    manager = EmergencyCorridorManager(network)
+
+    dispatch_tick = 120
+    mission = manager.dispatch_ambulance(
+        origin=0,
+        destination=5,
+        simulator=sim,
+        current_tick=dispatch_tick,
+    )
+    assert mission.dispatch_tick == dispatch_tick
+    assert mission.current_index == 0
+    assert mission.current_edge_progress_sec == 0.0
+    assert mission.completed is False
+    assert mission.arrival_tick is None
+
+    # Step simulation from tick 0 to 119
+    for tick in range(dispatch_tick):
+        biases = manager.update_and_get_biases(current_tick=tick, simulator=sim)
+        sim.step({n: 0 for n in range(6)})
+        # Must not emit biases before dispatch
+        assert len(biases) == 0, f"Biases emitted at tick {tick} before dispatch {dispatch_tick}"
+        # Must not advance or accumulate wait ticks
+        assert mission.current_index == 0
+        assert mission.current_edge_progress_sec == 0.0
+        assert mission.waiting_ticks == 0
+        assert mission.completed is False
+        assert mission.arrival_tick is None
+
+    # At dispatch tick (120), biases and movement should activate
+    biases_dispatch = manager.update_and_get_biases(current_tick=dispatch_tick, simulator=sim)
+    assert len(biases_dispatch) > 0, "Biases should be active at dispatch tick"
+    assert 0 in biases_dispatch
+

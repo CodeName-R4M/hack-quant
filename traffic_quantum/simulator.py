@@ -45,11 +45,25 @@ class Pedestrian:
 class TrafficSimulator:
     """Tick-based traffic simulation engine for a multi-intersection grid."""
 
-    def __init__(self, network: Optional[RoadNetwork] = None, config: Optional[MasterConfig] = None, seed: int = 42):
+    def __init__(
+        self,
+        network: Optional[RoadNetwork] = None,
+        config: Optional[MasterConfig] = None,
+        seed: int = 42,
+        switch_lost_time_sec: Optional[int] = None,
+    ):
         self.config = config or DEFAULT_CONFIG
         self.network = network or RoadNetwork(self.config.network)
         self.seed = seed
         self.rng = random.Random(seed)
+        self.switch_lost_time_sec: int = (
+            switch_lost_time_sec
+            if switch_lost_time_sec is not None
+            else getattr(self.config.simulation, "switch_lost_time_sec", 0)
+        )
+        self.lost_time_remaining: Dict[int, int] = {
+            node: 0 for node in self.network.graph.nodes
+        }
         
         self.current_tick: int = 0
         self.vehicle_id_counter: int = 0
@@ -84,6 +98,7 @@ class TrafficSimulator:
         self.throughput_history: List[int] = []  # Exits per tick
         self.queue_length_history: List[Dict[int, int]] = []  # Total queued cars per node per tick
         self.spillback_events_count: int = 0
+        self.total_phase_switches: int = 0
 
         # Boundary entry points
         self.boundary_approaches = self.network.get_boundary_approaches()
@@ -107,6 +122,9 @@ class TrafficSimulator:
             node: self.config.simulation.phase_ns_green
             for node in self.network.graph.nodes
         }
+        self.lost_time_remaining = {
+            node: 0 for node in self.network.graph.nodes
+        }
         self.completed_vehicles = []
         self.pedestrian_queues = {
             node: {"NS": [], "EW": []}
@@ -117,6 +135,7 @@ class TrafficSimulator:
         self.throughput_history = []
         self.queue_length_history = []
         self.spillback_events_count = 0
+        self.total_phase_switches = 0
 
     def clear_all_vehicles(self) -> None:
         """Removes all active vehicles from queues and in-transit segments.
@@ -135,7 +154,11 @@ class TrafficSimulator:
         """Updates intersection signal phases. 0 = NS green, 1 = EW green."""
         for node_id, phase in phases.items():
             if node_id in self.signal_phases:
-                self.signal_phases[node_id] = phase
+                if phase != self.signal_phases[node_id]:
+                    self.total_phase_switches += 1
+                    self.signal_phases[node_id] = phase
+                    if self.switch_lost_time_sec > 0:
+                        self.lost_time_remaining[node_id] = self.switch_lost_time_sec
 
     def spawn_vehicle(
         self,
@@ -264,6 +287,10 @@ class TrafficSimulator:
         should_discharge = (self.current_tick % self.config.simulation.discharge_interval_ticks == 0)
 
         for node_id in self.network.graph.nodes:
+            # Phase change blocks discharge at this intersection for switch_lost_time_sec
+            if self.lost_time_remaining.get(node_id, 0) > 0:
+                continue
+
             phase = self.signal_phases[node_id]
             # Active green approaches for this intersection
             if phase == self.config.simulation.phase_ns_green:
@@ -386,6 +413,12 @@ class TrafficSimulator:
         self._advance_in_transit()
         self._accumulate_waiting_times()
         self._service_pedestrians()
+
+        # Decrement lost-time remaining for switched intersections
+        if self.switch_lost_time_sec > 0:
+            for node_id in self.lost_time_remaining:
+                if self.lost_time_remaining[node_id] > 0:
+                    self.lost_time_remaining[node_id] -= 1
 
         # Record metrics for current tick
         self.throughput_history.append(discharged)

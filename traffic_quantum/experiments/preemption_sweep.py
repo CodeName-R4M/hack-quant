@@ -14,6 +14,7 @@ Outputs trade-off chart to results/preemption_tradeoff.png and json summary.
 import json
 import os
 import sys
+import copy
 
 # Ensure repository root is on sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
@@ -34,10 +35,11 @@ def run_single_preemption_trial(
     seed: int,
     w_emerg: float,
     hard_override: bool = False,
-    duration: int = 180,
+    duration: int = 240,
+    dispatch_tick: int = 120,
 ) -> Dict[str, float]:
     """Runs a single simulation trial with given preemption configuration."""
-    cfg = DEFAULT_CONFIG
+    cfg = copy.deepcopy(DEFAULT_CONFIG)
     cfg.qubo.w_emergency = w_emerg
     net = RoadNetwork(cfg.network)
     sim = TrafficSimulator(network=net, config=cfg, seed=seed)
@@ -45,16 +47,18 @@ def run_single_preemption_trial(
     mgr = EmergencyCorridorManager(net, config=cfg)
     mgr.hard_preemption_mode = hard_override
 
-    # Dispatch ambulance at tick 15 from 0 to 5
-    amb = mgr.dispatch_ambulance(
-        origin=0,
-        destination=5,
-        simulator=sim,
-        current_tick=15,
-        hard_preemption=hard_override,
-    )
+    amb = None
 
     for tick in range(duration):
+        if tick == dispatch_tick:
+            amb = mgr.dispatch_ambulance(
+                origin=0,
+                destination=5,
+                simulator=sim,
+                current_tick=dispatch_tick,
+                hard_preemption=hard_override,
+            )
+
         biases = mgr.update_and_get_biases(tick, sim)
         if hard_override:
             # Force green directly along route
@@ -71,7 +75,7 @@ def run_single_preemption_trial(
         sim.step(phases)
 
     m = MetricsEngine().compute_run_metrics(sim)
-    amb_time = (amb.arrival_tick - amb.dispatch_tick) if amb.arrival_tick else duration
+    amb_time = (amb.arrival_tick - amb.dispatch_tick) if (amb and amb.arrival_tick) else float(duration - dispatch_tick)
     return {
         "avg_wait_sec": m["avg_wait_sec"],
         "ambulance_time_sec": amb_time,
@@ -79,7 +83,7 @@ def run_single_preemption_trial(
     }
 
 
-def run_preemption_sweep(seeds: List[int] = None, duration: int = 180):
+def run_preemption_sweep(seeds: List[int] = None, duration: int = 240, dispatch_tick: int = 120):
     """Executes the preemption sweep across 20 evaluation seeds."""
     if seeds is None:
         seeds = list(range(100, 120))  # 20 evaluation seeds 100-119
@@ -91,7 +95,7 @@ def run_preemption_sweep(seeds: List[int] = None, duration: int = 180):
     baseline_amb_times = []
     baseline_waits = []
     for s in seeds:
-        res = run_single_preemption_trial(s, w_emerg=0.0, hard_override=False, duration=duration)
+        res = run_single_preemption_trial(s, w_emerg=0.0, hard_override=False, duration=duration, dispatch_tick=dispatch_tick)
         baseline_amb_times.append(res["ambulance_time_sec"])
         baseline_waits.append(res["avg_wait_sec"])
 
@@ -117,7 +121,7 @@ def run_preemption_sweep(seeds: List[int] = None, duration: int = 180):
         amb_times = []
         waits = []
         for s in seeds:
-            res = run_single_preemption_trial(s, w_emerg=w, hard_override=False, duration=duration)
+            res = run_single_preemption_trial(s, w_emerg=w, hard_override=False, duration=duration, dispatch_tick=dispatch_tick)
             amb_times.append(res["ambulance_time_sec"])
             waits.append(res["avg_wait_sec"])
 
@@ -140,7 +144,7 @@ def run_preemption_sweep(seeds: List[int] = None, duration: int = 180):
     hard_amb_times = []
     hard_waits = []
     for s in seeds:
-        res = run_single_preemption_trial(s, w_emerg=50.0, hard_override=True, duration=duration)
+        res = run_single_preemption_trial(s, w_emerg=50.0, hard_override=True, duration=duration, dispatch_tick=dispatch_tick)
         hard_amb_times.append(res["ambulance_time_sec"])
         hard_waits.append(res["avg_wait_sec"])
 
@@ -215,7 +219,7 @@ def run_preemption_sweep(seeds: List[int] = None, duration: int = 180):
 
     ax.set_xlabel("Extra Delay Imposed on Normal Traffic (seconds)", color="#cbd5e1", fontsize=11, labelpad=8)
     ax.set_ylabel("Ambulance Travel Time Saved (seconds)", color="#cbd5e1", fontsize=11, labelpad=8)
-    ax.set_title("Preemption Trade-Off: Ambulance Time Saved vs Normal Delay\n(20 Evaluation Seeds, 180s Runs)", color="#f8fafc", fontsize=13, pad=12)
+    ax.set_title("Preemption Trade-Off: Ambulance Time Saved vs Normal Delay\n(20 Evaluation Seeds, 240s Runs, Dispatch at Tick 120)", color="#f8fafc", fontsize=13, pad=12)
     ax.grid(True, linestyle=":", alpha=0.3, color="#475569")
     ax.tick_params(colors="#94a3b8")
     ax.legend(facecolor="#1e293b", edgecolor="#334155", labelcolor="#f1f5f9", loc="upper left")

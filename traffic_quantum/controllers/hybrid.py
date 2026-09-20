@@ -1,8 +1,9 @@
 """Hybrid Signal Controller.
 
-Coordinates quantum optimization (or exact brute-force verification) for phase selection
-with classical adaptive timing for green phase durations:
-    duration_i = clamp(base + k * queue_active, min_green, max_green)
+Coordinates quantum optimization (or exact brute-force verification) for phase selection.
+The controller evaluates the global traffic state every reopt_interval_sec (default 10s).
+A phase persists across successive intervals as long as the optimizer continues to select it,
+governed by queue pressure, coordination, spillback prevention, and switching penalty (w_switch).
 """
 
 from typing import Dict, List, Optional, Tuple
@@ -15,7 +16,7 @@ from traffic_quantum.quantum.brute_force import BruteForceOptimizer
 
 
 class HybridController(BaseController):
-    """Hybrid controller combining QUBO/QAOA phase selection with classical green timing."""
+    """Hybrid controller combining QUBO/QAOA phase selection with periodic re-optimization."""
 
     def __init__(
         self,
@@ -35,9 +36,6 @@ class HybridController(BaseController):
             node: self.config.simulation.phase_ns_green
             for node in self.network.graph.nodes
         }
-        self.phase_end_ticks: Dict[int, int] = {
-            node: 0 for node in self.network.graph.nodes
-        }
         self.last_reopt_tick: int = -999
 
         # Metrics & Optimization Logs
@@ -56,29 +54,10 @@ class HybridController(BaseController):
             node: self.config.simulation.phase_ns_green
             for node in self.network.graph.nodes
         }
-        self.phase_end_ticks = {
-            node: 0 for node in self.network.graph.nodes
-        }
         self.last_reopt_tick = -999
         self.optimization_history = []
         if self.qaoa_solver is not None:
             self.qaoa_solver.reset_cache()
-
-    def _compute_classical_duration(self, node: int, phase: int, simulator) -> int:
-        """Classical logic: sets green duration based on active queue length.
-        
-        Formula: clamp(base + k * queue_active, min_green, max_green)
-        """
-        q_lens = simulator.get_approach_queue_lengths(node)
-        if phase == self.config.simulation.phase_ns_green:
-            q_active = q_lens.get("N", 0) + q_lens.get("S", 0)
-        else:
-            q_active = q_lens.get("E", 0) + q_lens.get("W", 0)
-
-        cfg = self.config.hybrid
-        raw_dur = cfg.base_green_sec + cfg.k_queue * q_active
-        clamped_dur = max(cfg.min_green_sec, min(int(round(raw_dur)), cfg.max_green_sec))
-        return clamped_dur
 
     def get_phases(
         self,
@@ -86,11 +65,12 @@ class HybridController(BaseController):
         simulator,
         emergency_biases: Optional[Dict[int, str]] = None,
     ) -> Dict[int, int]:
-        """Calculates signal phases. Re-optimizes every reopt_interval_sec or when durations expire."""
+        """Calculates signal phases. Re-evaluates every reopt_interval_sec ticks.
+        
+        A phase persists as long as the optimizer continues to select it.
+        """
         reopt_interval = self.config.hybrid.reopt_interval_sec
-        needs_reopt = (current_tick - self.last_reopt_tick >= reopt_interval) or any(
-            current_tick >= self.phase_end_ticks[node] for node in self.network.graph.nodes
-        )
+        needs_reopt = (current_tick - self.last_reopt_tick >= reopt_interval)
 
         if needs_reopt:
             # 1. Build QUBO from network state
@@ -99,12 +79,9 @@ class HybridController(BaseController):
             # 2. Solve QUBO (Quantum or Brute-Force verification)
             best_x, opt_metadata = self._solve_qubo(Q, C0)
 
-            # 3. Apply phase choices and compute classical green durations
+            # 3. Apply phase choices
             for node_id in range(self.network.num_intersections):
-                phase = int(best_x[node_id])
-                self.current_phases[node_id] = phase
-                duration = self._compute_classical_duration(node_id, phase, simulator)
-                self.phase_end_ticks[node_id] = current_tick + duration
+                self.current_phases[node_id] = int(best_x[node_id])
 
             self.last_reopt_tick = current_tick
             opt_metadata["tick"] = current_tick

@@ -98,6 +98,37 @@ class TrafficQUBOBuilder:
                         Q[u, v] -= w_spill / 2.0
                         Q[v, u] -= w_spill / 2.0
 
+        # 3b. Optional throughput coupling term: for directed link u->v,
+        # u discharging toward v is more effective if v is also green for that approach
+        w_tc = getattr(self.config.qubo, "w_throughput_coupling", 0.0)
+        if w_tc > 0.0:
+            app_map = {"E": "W", "W": "E", "S": "N", "N": "S"}
+            for u in range(self.n):
+                for v in self.network.graph.neighbors(u):
+                    edge = self.network.graph[u][v]
+                    direction = edge.get("direction", "E")
+                    app_u = app_map.get(direction, "W")
+                    load = (
+                        len(simulator.queues[u].get(app_u, [])) +
+                        len(simulator.in_transit.get((u, v), []))
+                    )
+                    if load <= 0:
+                        continue
+                    coeff = w_tc * load
+                    if direction in ("E", "W"):
+                        # Coordinated EW green: benefit when x_u = 1 and x_v = 1
+                        # Term: -coeff * x_u * x_v
+                        Q[u, v] -= coeff / 2.0
+                        Q[v, u] -= coeff / 2.0
+                    elif direction in ("N", "S"):
+                        # Coordinated NS green: benefit when x_u = 0 and x_v = 0
+                        # Term: -coeff * (1 - x_u)*(1 - x_v) = -coeff * (1 - x_u - x_v + x_u*x_v)
+                        C0 -= coeff
+                        Q[u, u] += coeff
+                        Q[v, v] += coeff
+                        Q[u, v] -= coeff / 2.0
+                        Q[v, u] -= coeff / 2.0
+
         # 4. Emergency Green Corridor preemption bias
         if emergency_biases:
             for node, req_dir in emergency_biases.items():

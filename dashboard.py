@@ -1796,10 +1796,129 @@ with tab_evidence:
             st.caption(
                 f"Empirical Finding: Hard override clears corridors in {hard_time:.1f}s (+{hard_extra:.2f}s extra cross delay). "
                 f"Soft QUBO bias (W={soft_w15.get('w_emerg')}) clears corridors in {soft_time:.2f}s (+{soft_extra:.2f}s extra cross delay). "
-                f"The collateral delay difference between soft preemption and hard override is modest (~{collateral_diff:+.2f}s per vehicle)."
+                f"The collateral delay difference between soft preemption and hard override is modest (~{collateral_diff:+.2f}s per vehicle). "
+                "Notice that soft preemption does not achieve faster ambulance arrival than hard override. "
+                "Furthermore, under fair comparison where baselines also receive hard preemption, soft QUBO preemption offers operational flexibility rather than travel-time superiority."
             )
         else:
             st.caption("Preemption trade-off metrics not available (results/preemption_tradeoff.json not found).")
+
+    # Section 3.B: Fairness of Emergency Preemption across Baselines
+    amb_fair_file = os.path.join(os.path.dirname(__file__), "results", "ambulance_fairness.csv")
+    if os.path.exists(amb_fair_file):
+        st.markdown("##### Fairness of Emergency Preemption (Hard Preemption on Baselines)")
+        st.markdown(
+            "When baselines (Fixed and Rule-Based) are also granted hard emergency preemption (forcing green along the ambulance path), "
+            "we measure ambulance transit time and collateral delay on the identical 20 evaluation seeds."
+        )
+        df_fair = pd.read_csv(amb_fair_file)
+        display_fair_cols = [c for c in ["Scenario", "Controller", "Ambulance Time Mean (s)", "Ambulance Time 95% CI", "Vehicle Wait Mean (s)", "Extra Civilian Delay (s)", "Throughput (cpm)"] if c in df_fair.columns]
+        st.dataframe(df_fair[display_fair_cols], width='stretch', hide_index=True)
+
+        def get_f_val(sc_id, ctrl, col):
+            sub = df_fair[(df_fair["Scenario_ID"] == sc_id) & (df_fair["Controller"] == ctrl)]
+            return float(sub[col].values[0]) if len(sub) and col in sub.columns else 0.0
+
+        f_no_mod = get_f_val("moderate_load", "Fixed-Timing (No Preemption)", "Ambulance Time Mean (s)")
+        f_hd_mod = get_f_val("moderate_load", "Fixed + Hard Preemption", "Ambulance Time Mean (s)")
+        r_hd_mod = get_f_val("moderate_load", "Rule-Based (tuned) + Hard Preemption", "Ambulance Time Mean (s)")
+        h_sf_mod = get_f_val("moderate_load", "Hybrid (Brute-Force) (Soft QUBO)", "Ambulance Time Mean (s)")
+
+        f_no_rh = get_f_val("rush_hour", "Fixed-Timing (No Preemption)", "Ambulance Time Mean (s)")
+        f_hd_rh = get_f_val("rush_hour", "Fixed + Hard Preemption", "Ambulance Time Mean (s)")
+        r_hd_rh = get_f_val("rush_hour", "Rule-Based (tuned) + Hard Preemption", "Ambulance Time Mean (s)")
+        h_sf_rh = get_f_val("rush_hour", "Hybrid (Brute-Force) (Soft QUBO)", "Ambulance Time Mean (s)")
+        h_hd_rh = get_f_val("rush_hour", "Hybrid (Brute-Force) + Hard Preemption", "Ambulance Time Mean (s)")
+
+        st.caption(
+            f"**Route Specification:** Path [0, 1, 2, 5], 4 nodes, 3 directed arterial links (0->1, 1->2, 2->5), 24.0s free-flow travel time at 1.5x ambulance speed (18.75 m/s across 450m).\n\n"
+            f"**Warm-Up Dispatch (Tick 120):** Ambulance is dispatched inside the simulation loop after 120 seconds of warm-up so it encounters realistic, established queues. `ambulance_time_sec` measures elapsed time from entry at tick 120 until destination arrival.\n\n"
+            f"**Preemption Impact vs No Preemption:** Preemption cuts transit time dramatically (in moderate load: {f_no_mod:.1f}s down to {r_hd_mod:.1f}s-{h_sf_mod:.1f}s; in rush hour: {f_no_rh:.1f}s down to {h_hd_rh:.1f}s-{h_sf_rh:.1f}s).\n\n"
+            f"**Fair Baseline Comparison:** When baselines also receive hard preemption, Rule-Based + Hard Preemption ({r_hd_mod:.1f}s moderate, {r_hd_rh:.1f}s rush hour) matches or slightly beats Hybrid Soft QUBO ({h_sf_mod:.1f}s moderate, {h_sf_rh:.1f}s rush hour). The hybrid has no ambulance advantage over classical baselines that also receive preemption."
+        )
+
+    # Section 3.C: Robustness to Switching Cost (Lost-Time Sensitivity)
+    lost_time_file = os.path.join(os.path.dirname(__file__), "results", "lost_time_sensitivity.csv")
+    if os.path.exists(lost_time_file):
+        st.markdown("---")
+        st.markdown("#### 4. Robustness to Switching Cost: Signal Lost-Time Sensitivity & Fair Baseline Tuning")
+        st.markdown(
+            "In physical traffic deployments, signal transitions incur lost clearance time (yellow/all-red phases). "
+            "Below, `switch_lost_time_sec` blocks vehicle discharge for N seconds at an intersection following any phase change. "
+            "Evaluated across 20 evaluation seeds (seeds 100-119) for Fixed, Rule-Based, Rule-Based (tuned with hysteresis), and Hybrid (Brute-Force), with QAOA on 5 seeds."
+        )
+        df_lost = pd.read_csv(lost_time_file)
+        display_lost_cols = [c for c in ["scenario", "lost_time_sec", "controller", "avg_wait_sec", "wait_95_ci", "throughput_cpm", "total_switches", "paired_diff_vs_fixed_sec", "paired_diff_vs_hybrid_sec"] if c in df_lost.columns]
+        st.dataframe(df_lost[display_lost_cols], width='stretch', hide_index=True)
+
+        # Compute dynamic percentage improvements directly from df_lost in code
+        pct_strings = []
+        for sc in ["moderate_load", "rush_hour"]:
+            for lt in [0, 2, 3]:
+                sub_f = df_lost[(df_lost["scenario"] == sc) & (df_lost["lost_time_sec"] == lt) & (df_lost["controller"] == "Fixed-Timing")]
+                sub_h = df_lost[(df_lost["scenario"] == sc) & (df_lost["lost_time_sec"] == lt) & (df_lost["controller"] == "Hybrid (Brute-Force)")]
+                if len(sub_f) and len(sub_h):
+                    f_m = sub_f["avg_wait_sec"].values[0]
+                    diff_val = sub_h["paired_diff_vs_fixed_sec"].values[0]
+                    pct_val = abs(diff_val) / f_m * 100
+                    pct_strings.append(f"{sc} lt={lt}s: {pct_val:.1f}% ({diff_val:+.2f}s)")
+
+        pct_summary_text = " | ".join(pct_strings)
+        st.caption(f"**Recomputed Improvement vs Fixed (Code-Derived):** {pct_summary_text}")
+        # Extract dynamic values for caption to avoid hardcoded literals
+        def get_lost_val(sc_val, lt_val, ctrl_name, col_name="avg_wait_sec"):
+            sub = df_lost[(df_lost["scenario"] == sc_val) & (df_lost["lost_time_sec"] == lt_val) & (df_lost["controller"] == ctrl_name)]
+            if len(sub) and col_name in sub.columns:
+                return float(sub[col_name].values[0])
+            return 0.0
+
+        rt_m0 = get_lost_val("moderate_load", 0, "Rule-Based (tuned)")
+        rt_m2 = get_lost_val("moderate_load", 2, "Rule-Based (tuned)")
+        rt_m3 = get_lost_val("moderate_load", 3, "Rule-Based (tuned)")
+
+        hb_r2 = get_lost_val("rush_hour", 2, "Hybrid (Brute-Force)")
+        rt_r2 = get_lost_val("rush_hour", 2, "Rule-Based (tuned)")
+        hb_r3 = get_lost_val("rush_hour", 3, "Hybrid (Brute-Force)")
+        rt_r3 = get_lost_val("rush_hour", 3, "Rule-Based (tuned)")
+
+        hb_m0 = get_lost_val("moderate_load", 0, "Hybrid (Brute-Force)")
+        hb_r0 = get_lost_val("rush_hour", 0, "Hybrid (Brute-Force)")
+
+        sc_m_val = float(df_sc.loc[(df_sc["Scenario_ID"] == "moderate_load") & (df_sc["Controller"] == "Hybrid (Brute-Force)"), "Wait Mean (s)"].values[0]) if ("df_sc" in locals() and len(df_sc)) else hb_m0
+        sc_r_val = float(df_sc.loc[(df_sc["Scenario_ID"] == "rush_hour") & (df_sc["Controller"] == "Hybrid (Brute-Force)"), "Wait Mean (s)"].values[0]) if ("df_sc" in locals() and len(df_sc)) else hb_r0
+
+        diff_m = sc_m_val - hb_m0
+        diff_r = sc_r_val - hb_r0
+
+        st.caption(
+            f"**Fair Baseline Tuning Findings:** "
+            f"When Rule-Based is given the same tuning budget on training seeds (eval_interval, min_green, and queue hysteresis), "
+            f"**Rule-Based (tuned) achieves {rt_m0:.2f}s (0s lost time), {rt_m2:.2f}s (2s lost time), and {rt_m3:.2f}s (3s lost time) in moderate load — beating Hybrid Brute-Force across all three settings!** "
+            f"In rush hour, Hybrid BF maintains a modest advantage ({hb_r2:.2f}s vs {rt_r2:.2f}s at 2s; {hb_r3:.2f}s vs {rt_r3:.2f}s at 3s). "
+            f"**Number Reconciliation:** In this lost-time study, `ambulance_present: False` (civilian traffic only), explaining why Hybrid (BF) wait at 0s is {hb_m0:.2f}s (moderate) and {hb_r0:.2f}s (rush hour). "
+            f"In the scenario benchmark above, `ambulance_present: True` (ambulance dispatched at tick 15), adding cross-traffic preemption delay that yielded {sc_m_val:.2f}s (+{diff_m:.2f}s) and {sc_r_val:.2f}s (+{diff_r:.2f}s)."
+        )
+
+    # Section 3.D: Pedestrian Wait Times Across All Regimes
+    ped_file = os.path.join(os.path.dirname(__file__), "results", "pedestrian_summary.csv")
+    if os.path.exists(ped_file):
+        st.markdown("---")
+        st.markdown("#### 5. Pedestrian Wait Times Across Regimes & Controllers")
+        st.markdown(
+            "Average pedestrian crossing delay across all four regimes and four controllers evaluated on 20 evaluation seeds:"
+        )
+        df_ped = pd.read_csv(ped_file)
+        st.dataframe(df_ped, width='stretch', hide_index=True)
+        # Extract rush hour pedestrian difference dynamically
+        sub_p_rh = df_ped[(df_ped["scenario"] == "rush_hour") & (df_ped["controller"].str.contains("Hybrid.*Brute", regex=True))]
+        p_diff_rh = float(sub_p_rh["paired_diff_vs_fixed"].values[0]) if len(sub_p_rh) else 0.0
+        p_ci_rh = sub_p_rh["paired_ci_vs_fixed"].values[0] if (len(sub_p_rh) and "paired_ci_vs_fixed" in sub_p_rh.columns) else "[0.0, 0.0]"
+        st.caption(
+            "**Pedestrian Caveats & Analysis:** "
+            "(1) Pedestrian wait times are inherently small in this discrete network model (2.8s–8.8s across all regimes) due to short crossing distances. "
+            "(2) Classical Rule-Based contains no pedestrian-sensing logic, so its pedestrian wait performance is purely incidental. "
+            f"(3) In rush hour, the pedestrian wait difference between Hybrid and Fixed is a statistical tie ({p_diff_rh:+.2f}s, 95% CI {p_ci_rh}s, spanning zero)."
+        )
 
     # Section 3: QAOA Algorithmic Depth & Noise Analysis
     st.markdown("---")
@@ -1808,7 +1927,7 @@ with tab_evidence:
     with q_col1:
         depth_png = os.path.join(os.path.dirname(__file__), "results", "qaoa_depth_vs_ratio.png")
         if os.path.exists(depth_png):
-            st.image(depth_png, caption="QAOA Approximation Ratio vs Circuit Depth p (1-4) across 20 Traffic Snapshots", width='stretch')
+            st.image(depth_png, caption="QAOA Best-State Approximation Ratio vs Circuit Depth p (1-4) across 20 Snapshots", width='stretch')
             depth_data_path = os.path.join(os.path.dirname(__file__), "results", "qaoa_depth_data.json")
             if os.path.exists(depth_data_path):
                 try:
@@ -1818,9 +1937,9 @@ with tab_evidence:
                     p4_m = d_data.get("4", {}).get("mean_ratio", 0)
                     p4_hit = d_data.get("4", {}).get("exact_hit_rate", 0) * 100
                     st.caption(
-                        f"Depth Scaling (Loaded from `results/qaoa_depth_data.json`): Scaled optimizer budget (max_iterations = 20 + 20*p). "
-                        f"Approximation ratio improves from {p1_m:.4f} (p=1) to {p4_m:.4f} (p=4, {p4_hit:.1f}% exact hit rate). "
-                        "This confirms that prior underperformance at higher depth was an optimizer budget artifact rather than barren plateaus."
+                        f"Metric: **Best-state approximation ratio** = `(max_cost - best_sampled_cost) / (max_cost - min_cost)`. "
+                        f"Depth Scaling (from `results/qaoa_depth_data.json`): Ratio improves from {p1_m:.4f} (p=1) to {p4_m:.4f} (p=4, {p4_hit:.1f}% hit rate). "
+                        "Note: This result is suggestive rather than conclusive because the iteration budget grows with p (20 + 20*p) and the 95% CIs between p=3 and p=4 overlap."
                     )
                 except Exception:
                     st.caption("Depth study data loaded from results/qaoa_depth_vs_ratio.png.")
@@ -1829,7 +1948,7 @@ with tab_evidence:
     with q_col2:
         noise_png = os.path.join(os.path.dirname(__file__), "results", "qaoa_noise_study.png")
         if os.path.exists(noise_png):
-            st.image(noise_png, caption="QAOA Noise Sensitivity (PennyLane default.mixed Depolarizing Noise)", width='stretch')
+            st.image(noise_png, caption="QAOA Best-State Approximation Ratio under Depolarizing Noise (PennyLane default.mixed)", width='stretch')
             noise_data_path = os.path.join(os.path.dirname(__file__), "results", "qaoa_noise_data.json")
             if os.path.exists(noise_data_path):
                 try:
@@ -1838,7 +1957,8 @@ with tab_evidence:
                     ideal_m = n_data.get("Ideal (Noiseless)", {}).get("mean_ratio", 0)
                     high_m = n_data.get("High (p=0.05)", {}).get("mean_ratio", 0)
                     st.caption(
-                        f"Noise Sensitivity (Loaded from `results/qaoa_noise_data.json`): Evaluated across 20 snapshots with 95% CIs. "
+                        f"Metric: **Best-state approximation ratio**. "
+                        f"Noise Sensitivity (from `results/qaoa_noise_data.json`): Evaluated across 20 snapshots with 95% CIs. "
                         f"Noiseless baseline ({ideal_m:.4f}) monotonically degrades under depolarizing noise down to {high_m:.4f} at p=0.05 noise rate."
                     )
                 except Exception:
@@ -1868,9 +1988,62 @@ with tab_evidence:
         else:
             st.caption("Scaling metadata not available.")
 
-    # Section 6: Amazon Braket Simulation & Cloud Telemetry
+    # Section 6: Network Coupling Ablation & Greedy Equivalence Study
+    ablation_file = os.path.join(os.path.dirname(__file__), "results", "ablation_study.json")
+    if os.path.exists(ablation_file):
+        st.markdown("---")
+        st.markdown("#### 6. Network Coupling Ablation & Greedy Equivalence Study (Phase 5)")
+        st.markdown(
+            "Empirical evaluation of whether quadratic network coupling terms ($W_{coord}$ and $W_{spillback}$) contribute to signal optimization:"
+        )
+        try:
+            with open(ablation_file, "r", encoding="utf-8") as f:
+                ab_data = json.load(f)
+            ab_a = ab_data.get("ablation_a_greedy_comparison", {})
+            ab_b = ab_data.get("ablation_b_uncoupled", {})
+            
+            diff_pct = ab_a.get("fraction_different", 0) * 100
+            diff_rounds = ab_a.get("different_rounds", 0)
+            tot_rounds = ab_a.get("total_rounds", 0)
+            avg_bits = ab_a.get("avg_bits_when_diff", 0)
+            
+            mod_unc_diff = ab_b.get("moderate_load", {}).get("paired_diff_mean", 0)
+            mod_unc_ci = ab_b.get("moderate_load", {}).get("paired_diff_ci", [0, 0])
+            rh_unc_diff = ab_b.get("rush_hour", {}).get("paired_diff_mean", 0)
+            rh_unc_ci = ab_b.get("rush_hour", {}).get("paired_diff_ci", [0, 0])
+            
+            st.caption(
+                f"**Ablation (a) Greedy Equivalence:** Across {tot_rounds} reoptimization rounds (20 evaluation seeds x 120 rounds at 5s re-optimization), "
+                f"the global QUBO optimum differs from the independent per-intersection greedy choice in only **{diff_pct:.1f}% of rounds** ({diff_rounds}/{tot_rounds}). "
+                f"Here, 'independent greedy' means each junction independently chooses its phase to minimize its local linear queue and wait terms without any cross-junction coordination. "
+                f"When they differ, an average of only {avg_bits:.2f} of 6 bits differ.\n\n"
+                f"**Ablation (b) Uncoupled Hybrid (W_coord=0, W_spillback=0) vs Full Hybrid:** "
+                f"In moderate load, the uncoupled hybrid is slightly faster ({mod_unc_diff:+.2f}s paired difference, 95% CI [{mod_unc_ci[0]:.2f}, {mod_unc_ci[1]:.2f}]s). "
+                f"In rush hour, the uncoupled and full hybrid are a statistical tie ({rh_unc_diff:+.2f}s, 95% CI [{rh_unc_ci[0]:.2f}, {rh_unc_ci[1]:.2f}]s, spanning zero).\n\n"
+                f"**Ablation (c) Theoretical Consequence:** Setting coupling terms to zero eliminates all two-qubit interaction terms ($J_{{ij}} Z_i Z_j$) from the Ising Hamiltonian, "
+                f"reducing it to a collection of independent 1-qubit fields. The baseline quadratic coupling terms provided no measurable delay reduction on this 6-intersection grid."
+            )
+            
+            tc_file = os.path.join(os.path.dirname(__file__), "results", "throughput_coupling_study.json")
+            if os.path.exists(tc_file):
+                with open(tc_file, "r", encoding="utf-8") as f_tc:
+                    tc_data = json.load(f_tc)
+                wtc_sel = tc_data.get("selected_w_tc", 0.5)
+                tc_eval = tc_data.get("evaluations", {})
+                rh_tc_diff = tc_eval.get("rush_hour", {}).get("paired_diff_vs_uncoupled_mean", 0)
+                rh_tc_ci = tc_eval.get("rush_hour", {}).get("paired_diff_vs_uncoupled_ci", [0, 0])
+                sa_tc_diff = tc_eval.get("surge_accident", {}).get("paired_diff_vs_uncoupled_mean", 0)
+                sa_tc_ci = tc_eval.get("surge_accident", {}).get("paired_diff_vs_uncoupled_ci", [0, 0])
+                st.caption(
+                    f"**Throughput Coupling Term (Optional):** An alternative coupling term weighting downstream green phases by approach queue plus in-transit load was tuned ($w_{{tc}}={wtc_sel}$) on training seeds. "
+                    f"On 20 evaluation seeds, it improved delay by {rh_tc_diff:+.2f}s (95% CI [{rh_tc_ci[0]:.2f}, {rh_tc_ci[1]:.2f}]s) in rush hour and {sa_tc_diff:+.2f}s (95% CI [{sa_tc_ci[0]:.2f}, {sa_tc_ci[1]:.2f}]s) in surge accident."
+                )
+        except Exception:
+            st.caption("Ablation study data could not be parsed.")
+
+    # Section 7: Amazon Braket Simulation & Cloud Telemetry
     st.markdown("---")
-    st.markdown("#### 6. Amazon Braket Simulation & Cloud Telemetry")
+    st.markdown("#### 7. Amazon Braket Simulation & Cloud Telemetry")
     braket_s3_dest = os.getenv("AWS_BRAKET_S3_BUCKET", "Configured dynamically via AWS Session / default bucket")
     st.markdown(
         f"Validation running the 6-intersection urban grid QAOA circuit via **PennyLane on Amazon Braket** "

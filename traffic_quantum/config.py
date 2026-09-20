@@ -57,6 +57,9 @@ class SimulationConfig:
     phase_ns_green: int = 0
     phase_ew_green: int = 1
 
+    # Lost-time penalty per phase switch (0 means switching is free)
+    switch_lost_time_sec: int = 0
+
 
 @dataclass
 class BaselineConfig:
@@ -80,6 +83,7 @@ class QUBOConfig:
     w_emergency: float = 50.0     # Heavy linear bias when emergency vehicle approaches
     w_pedestrian: float = 2.0     # Linear penalty for queued pedestrian waiting
     w_switch: float = 1.0         # Switching penalty (tuned on training seeds 1-5)
+    w_throughput_coupling: float = 0.0  # Optional quadratic link-discharge coupling (default off)
     spillback_threshold: float = 0.80  # Queue / capacity fraction considered spillback hazard
 
 
